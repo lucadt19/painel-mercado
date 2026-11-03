@@ -1,10 +1,24 @@
-import { PageHeader } from "@/components/page-header";
+import { IndexStrip } from "@/components/overview/index-strip";
+import { WatchlistTable } from "@/components/overview/watchlist-table";
+import { FixedIncomeCards } from "@/components/overview/fixed-income-cards";
+import { Headlines } from "@/components/overview/headlines";
+import { StatusFooter } from "@/components/overview/status-footer";
 
 export default function VisaoGeralPage() {
   return (
-    <PageHeader
-      title="Visão Geral"
-      description="Índices, watchlist, renda fixa e manchetes do dia."
-    />
+    <>
+      <h1 className="sr-only">Visão Geral</h1>
+      <IndexStrip />
+      <div className="mt-8 grid gap-8 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <WatchlistTable />
+        </div>
+        <div className="flex flex-col gap-8">
+          <FixedIncomeCards />
+          <Headlines />
+        </div>
+      </div>
+      <StatusFooter />
+    </>
   );
 }

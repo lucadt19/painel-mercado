@@ -58,6 +58,7 @@ export function AutoRefreshProvider({
           // Mantém o último dado bom na tela se uma atualização falhar.
           keepPreviousData: true,
           errorRetryCount: 3,
+          onError: (err, key) => console.warn(`[atualização] falha em ${key}:`, err),
         }}
       >
         {children}

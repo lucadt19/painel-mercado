@@ -30,6 +30,17 @@ export function errorMessage(err: unknown): string {
   return "Erro inesperado ao buscar os dados.";
 }
 
+const TRANSIENT = {
+  timeout: "A fonte demorou demais para responder.",
+  network: "Não foi possível conectar à fonte.",
+  rateLimit: "Limite de requisições da brapi atingido.",
+};
+
+/** Falha que tende a passar sozinha (vale tentar de novo logo). */
+export function isTransientError(message: string): boolean {
+  return Object.values(TRANSIENT).includes(message) || /erro 5\d\d/.test(message);
+}
+
 /** "1.234,56" -> 1234.56. Vazio ou inválido -> null. */
 export function parseBrNumber(raw: string | undefined): number | null {
   if (!raw) return null;

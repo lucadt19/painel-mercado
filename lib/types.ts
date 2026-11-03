@@ -22,7 +22,12 @@ export type Quote = {
   previousClose: number | null;
   /** Horário da cotação informado pela brapi (ISO 8601). */
   updatedAt: string;
+  /** Fechamentos diários do período do plano (3 meses no Gratuito), do mais antigo ao mais novo. */
+  history: PricePoint[];
 };
+
+/** Um ponto de histórico: data (AAAA-MM-DD) e preço. */
+export type PricePoint = { date: string; close: number };
 
 export type QuoteItem = { symbol: string } & Result<{ quote: Quote }>;
 
@@ -39,6 +44,8 @@ export type FxRate = {
   updatedAt: string;
   /** "brapi" ou "PTAX/BCB", com o tipo de boletim no caso da PTAX. */
   source: string;
+  /** Fechamentos dos últimos dias, do mais antigo ao mais novo. */
+  history: PricePoint[];
 };
 
 export type FxItem = { pair: string } & Result<{ rate: FxRate }>;
@@ -50,6 +57,8 @@ export type QuotesResponse = {
   refreshSeconds: number;
   /** Atraso aproximado das cotações, em minutos. */
   delayMinutes: number;
+  /** Período do histórico pedido à brapi ("3mo" no Gratuito, "1y" no Startup). */
+  historyRange: "3mo" | "1y";
   indices: QuoteItem[];
   watchlist: QuoteItem[];
   fx: FxItem[];

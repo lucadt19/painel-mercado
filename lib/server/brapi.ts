@@ -17,6 +17,7 @@ type BrapiQuoteRaw = {
   regularMarketChangePercent?: number;
   regularMarketPreviousClose?: number;
   regularMarketTime?: string;
+  historicalDataPrice?: { date?: number; close?: number | null }[];
 };
 
 type BrapiQuoteResponse = { results?: BrapiQuoteRaw[] };
@@ -71,16 +72,35 @@ async function brapiGet<T>(path: string, retry = true): Promise<T> {
 function toQuote(raw: BrapiQuoteRaw): Quote | null {
   const { regularMarketPrice: price, regularMarketTime: time } = raw;
   if (typeof price !== "number" || !time) return null;
+  const history = (raw.historicalDataPrice ?? [])
+    .filter((p): p is { date: number; close: number } =>
+      typeof p.date === "number" && typeof p.close === "number",
+    )
+    .map((p) => ({ date: spDay(p.date * 1000), close: p.close }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+
   return {
     symbol: raw.symbol,
-    name: raw.shortName || raw.longName || raw.symbol,
+    // shortName costuma ser só o ticker (ex.: "PETR4"); longName é mais útil.
+    name: raw.longName || raw.shortName || raw.symbol,
     currency: raw.currency ?? "BRL",
     price,
     change: raw.regularMarketChange ?? 0,
     changePercent: raw.regularMarketChangePercent ?? 0,
     previousClose: raw.regularMarketPreviousClose ?? null,
     updatedAt: new Date(time).toISOString(),
+    history,
   };
+}
+
+/** Dia (AAAA-MM-DD) em São Paulo de um instante. */
+function spDay(ms: number): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(ms));
 }
 
 /** A brapi às vezes devolve o símbolo com sufixo (ex.: IFIX -> IFIX.SA). */
@@ -116,7 +136,10 @@ export async function fetchQuotes(symbols: string[]): Promise<QuoteItem[]> {
     CONCURRENCY,
     async (group): Promise<QuoteItem[]> => {
       try {
-        const path = `/quote/${group.map(encodeURIComponent).join(",")}`;
+        // O histórico diário vem na mesma chamada: não gasta cota extra.
+        const path =
+          `/quote/${group.map(encodeURIComponent).join(",")}` +
+          `?range=${serverEnv.brapiHistoryRange}&interval=1d`;
         const data = await brapiGet<BrapiQuoteResponse>(path);
         return group.map((symbol) => {
           const raw = data.results?.find(
@@ -159,6 +182,7 @@ export async function fetchFxFromBrapi(pairs: string[]): Promise<FxItem[]> {
         changePercent: Number.isFinite(pct) ? pct : null,
         updatedAt: new Date(ts * 1000).toISOString(),
         source: "brapi",
+        history: [],
       },
     };
   });

@@ -79,6 +79,28 @@
   /* Transições curtas. */
   --default-transition-duration: 150ms;
 
+  /* Flash de ~1 s quando um preço muda. */
+  --animate-flash-up: flash-up 1s ease-out;
+  --animate-flash-down: flash-down 1s ease-out;
+
+  @keyframes flash-up {
+    from {
+      background-color: var(--up-soft);
+    }
+    to {
+      background-color: transparent;
+    }
+  }
+
+  @keyframes flash-down {
+    from {
+      background-color: var(--down-soft);
+    }
+    to {
+      background-color: transparent;
+    }
+  }
+
   /* Espaçamento: a escala padrão do Tailwind (múltiplos de 4px). */
 }
 

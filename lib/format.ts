@@ -11,8 +11,21 @@ const dayKeyFmt = new Intl.DateTimeFormat("en-CA", { timeZone: TZ, year: "numeri
 /** R$ 1.234,56 */
 export const formatBRL = (n: number) => brl.format(n);
 
-/** 1.234,56 */
-export const formatNumber = (n: number) => decimal2.format(n);
+const brl4 = new Intl.NumberFormat("pt-BR", {
+  style: "currency",
+  currency: "BRL",
+  minimumFractionDigits: 4,
+  maximumFractionDigits: 4,
+});
+
+/** R$ 5,4935 (câmbio, com 4 casas como na PTAX). */
+export const formatBRL4 = (n: number) => brl4.format(n);
+
+/** 1.234,56 (ou com outro número de casas decimais). */
+export const formatNumber = (n: number, decimals = 2) =>
+  decimals === 2
+    ? decimal2.format(n)
+    : n.toLocaleString("pt-BR", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 
 /** +1,23% / −0,45% (com o sinal de menos tipográfico). */
 export function formatPercent(n: number): string {

@@ -6,7 +6,7 @@ import { serverEnv } from "@/lib/server/env";
 import { fetchFxFromBrapi, fetchQuotes, PlanError } from "@/lib/server/brapi";
 import { fetchFxFromPtax, fetchMacroIndicators } from "@/lib/server/bcb";
 import { fetchTreasuryBonds, TESOURO_SOURCE } from "@/lib/server/tesouro";
-import { errorMessage } from "@/lib/server/http";
+import { errorMessage, isTransientError } from "@/lib/server/http";
 import { checkEstimatedQuota } from "@/lib/server/quota";
 
 /*
@@ -16,6 +16,8 @@ import { checkEstimatedQuota } from "@/lib/server/quota";
  */
 
 const WEEK = 7 * 24 * 3600;
+/** Nova tentativa mais cedo quando alguma fonte falhou. */
+const RETRY_SECONDS = 300;
 
 /**
  * Se a brapi disser que o câmbio está fora do plano, não tentamos de novo por
@@ -40,7 +42,6 @@ async function fetchFx(): Promise<FxItem[]> {
 export async function getQuotes(): Promise<QuotesResponse> {
   "use cache";
   const refresh = serverEnv.quotesRefreshSeconds;
-  cacheLife({ stale: refresh, revalidate: refresh, expire: WEEK });
 
   const symbols = indices.map((i) => i.symbol);
   const callsPerRound =
@@ -55,10 +56,20 @@ export async function getQuotes(): Promise<QuotesResponse> {
     fetchFx(),
   ]);
 
+  // Falha passageira (limite por minuto, rede): tenta de novo em 5 minutos em
+  // vez de esperar o intervalo inteiro. Falhas permanentes (ticker inexistente,
+  // fora do plano) seguem o intervalo normal, para não gastar a cota.
+  const anyTransient = [...indexItems, ...watchItems, ...fx].some(
+    (i) => !i.ok && isTransientError(i.error),
+  );
+  if (anyTransient) cacheLife({ stale: RETRY_SECONDS, revalidate: RETRY_SECONDS, expire: WEEK });
+  else cacheLife({ stale: refresh, revalidate: refresh, expire: WEEK });
+
   return {
     generatedAt: new Date().toISOString(),
     refreshSeconds: refresh,
     delayMinutes: Math.round(refresh / 60),
+    historyRange: serverEnv.brapiHistoryRange,
     indices: indexItems,
     watchlist: watchItems,
     fx,
@@ -69,25 +80,27 @@ export async function getMacro(): Promise<MacroResponse> {
   "use cache";
   // As séries mudam no máximo uma vez por dia; renovar de hora em hora
   // garante pegar a publicação do dia cedo, sem custo (API pública).
-  cacheLife({ stale: 3600, revalidate: 3600, expire: WEEK });
+  const items = await fetchMacroIndicators();
+  if (items.some((i) => !i.ok)) cacheLife({ stale: RETRY_SECONDS, revalidate: 300, expire: WEEK });
+  else cacheLife({ stale: 3600, revalidate: 3600, expire: WEEK });
 
   return {
     generatedAt: new Date().toISOString(),
     source: "Banco Central do Brasil (SGS)",
-    items: await fetchMacroIndicators(),
+    items,
   };
 }
 
 export async function getTreasury(): Promise<TreasuryResponse> {
   "use cache";
   // O arquivo do Tesouro Transparente muda uma vez por dia útil.
-  cacheLife({ stale: 3600, revalidate: 3600, expire: WEEK });
-
   const generatedAt = new Date().toISOString();
   try {
     const { referenceDate, bonds } = await fetchTreasuryBonds();
+    cacheLife({ stale: 3600, revalidate: 3600, expire: WEEK });
     return { generatedAt, source: TESOURO_SOURCE, ok: true, referenceDate, bonds };
   } catch (err) {
+    cacheLife({ stale: RETRY_SECONDS, revalidate: 300, expire: WEEK });
     return { generatedAt, source: TESOURO_SOURCE, ok: false, error: errorMessage(err) };
   }
 }

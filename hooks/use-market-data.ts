@@ -11,10 +11,17 @@ import type {
 } from "@/lib/types";
 
 /**
- * Um item que falhou nesta rodada, mas tinha valor bom antes:
- * mostramos o valor antigo (com o horário dele) marcado como `stale`.
+ * - `stale`: o item falhou nesta rodada, mas tinha valor bom antes; mostramos
+ *   o valor antigo (com o horário dele).
+ * - `tick`: o preço mudou desde a rodada anterior (para o flash verde/vermelho).
  */
-export type WithStale<T> = T & { stale?: { error: string } };
+export type WithStale<T> = T & { stale?: { error: string }; tick?: "up" | "down" };
+
+/** Preço de um item, seja cotação ou câmbio. */
+function priceOf(item: unknown): number | undefined {
+  const i = item as { quote?: { price: number }; rate?: { price: number } } | undefined;
+  return i?.quote?.price ?? i?.rate?.price;
+}
 
 async function getJson<T>(url: string): Promise<T> {
   const res = await fetch(url);
@@ -34,7 +41,12 @@ function keepLastGood<T extends { ok: boolean }>(
   return items.map((item) => {
     const k = key(item);
     if (item.ok) {
+      const before = priceOf(store.get(k));
+      const now = priceOf(item);
       store.set(k, item);
+      if (before !== undefined && now !== undefined && now !== before) {
+        return { ...item, tick: now > before ? "up" : "down" };
+      }
       return item;
     }
     const previous = store.get(k);

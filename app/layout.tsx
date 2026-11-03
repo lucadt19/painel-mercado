@@ -40,7 +40,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable}`}
     >
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+        {/* Roda no servidor como script; no navegador vira texto inerte, sem o aviso do React. */}
+        <script
+          type={typeof window === "undefined" ? "text/javascript" : "text/plain"}
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{ __html: themeInitScript }}
+        />
       </head>
       <body className="min-h-dvh">
         <AutoRefreshProvider delayMinutes={Math.round(serverEnv.quotesRefreshSeconds / 60)}>

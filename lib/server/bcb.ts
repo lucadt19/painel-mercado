@@ -97,7 +97,8 @@ function ptaxTimeToIso(raw: string): string {
  */
 export async function fetchFxFromPtax(pairs: string[]): Promise<FxItem[]> {
   const now = new Date();
-  const start = new Date(now.getTime() - 10 * 24 * 3600 * 1000);
+  // 14 dias corridos: cobre ao menos 5 dias úteis para o mini-gráfico.
+  const start = new Date(now.getTime() - 14 * 24 * 3600 * 1000);
 
   return Promise.all(
     pairs.map(async (pair): Promise<FxItem> => {
@@ -123,6 +124,14 @@ export async function fetchFxFromPtax(pairs: string[]): Promise<FxItem[]> {
           ? (last.cotacaoVenda / previousClose.cotacaoVenda - 1) * 100
           : null;
 
+        // Histórico: fechamento de cada dia; no dia atual, o boletim mais recente.
+        const byDay = new Map<string, number>();
+        for (const p of points) {
+          const day = p.dataHoraCotacao.slice(0, 10);
+          if (p.tipoBoletim === "Fechamento" || day === lastDay) byDay.set(day, p.cotacaoVenda);
+        }
+        const history = [...byDay].map(([date, close]) => ({ date, close }));
+
         return {
           pair,
           ok: true,
@@ -132,6 +141,7 @@ export async function fetchFxFromPtax(pairs: string[]): Promise<FxItem[]> {
             changePercent,
             updatedAt: ptaxTimeToIso(last.dataHoraCotacao),
             source: `PTAX/BCB · boletim ${last.tipoBoletim.toLowerCase()}`,
+            history,
           },
         };
       } catch (err) {

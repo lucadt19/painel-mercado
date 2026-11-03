@@ -13,4 +13,8 @@ export const serverEnv = {
   quotesRefreshSeconds: intFromEnv("QUOTES_REFRESH_SECONDS", 1800, 60),
   brapiMaxTickersPerRequest: intFromEnv("BRAPI_MAX_TICKERS_PER_REQUEST", 1),
   brapiMonthlyQuota: intFromEnv("BRAPI_MONTHLY_QUOTA", 15000),
+  /** Histórico pedido junto com a cotação: "3mo" (Gratuito) ou "1y" (Startup ou acima). */
+  brapiHistoryRange: (process.env.BRAPI_HISTORY_RANGE?.trim() === "1y" ? "1y" : "3mo") as
+    | "3mo"
+    | "1y",
 };
