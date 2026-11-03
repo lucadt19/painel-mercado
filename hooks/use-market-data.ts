@@ -4,6 +4,7 @@ import useSWR from "swr";
 import { useAutoRefresh } from "@/components/auto-refresh-provider";
 import type {
   AssetResponse,
+  MacroHistoryResponse,
   FxItem,
   MarketListResponse,
   WorldResponse,
@@ -140,5 +141,13 @@ export function useAsset(ticker: string) {
   const { pollQuotes, pollWorld } = useAutoRefresh();
   return useSWR<AssetResponse>(`/api/asset/${encodeURIComponent(ticker)}`, getJson, {
     refreshInterval: pollQuotes || pollWorld ? 1800 * 1000 : 0,
+  });
+}
+
+/** Histórico das séries macro: muda no máximo uma vez por dia; checa a cada 6 h. */
+export function useMacroHistory() {
+  return useSWR<MacroHistoryResponse>("/api/macro-history", getJson, {
+    refreshInterval: 6 * HOUR,
+    revalidateOnFocus: false,
   });
 }

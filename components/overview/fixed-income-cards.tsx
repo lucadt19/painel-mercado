@@ -8,7 +8,7 @@ import type { MacroIndicator } from "@/lib/types";
 import { Card, SectionTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
-function RateCard({
+export function RateCard({
   label,
   value,
   unit,

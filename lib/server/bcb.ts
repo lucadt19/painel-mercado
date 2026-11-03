@@ -1,5 +1,11 @@
 import "server-only";
-import type { FxItem, MacroIndicator, MacroItem } from "@/lib/types";
+import type {
+  FxItem,
+  MacroHistoryResponse,
+  MacroIndicator,
+  MacroItem,
+  SeriesPoint,
+} from "@/lib/types";
 import { brDateToIso, errorMessage, fetchWithTimeout, SourceError } from "@/lib/server/http";
 
 /**
@@ -63,6 +69,41 @@ export async function fetchMacroIndicators(): Promise<MacroItem[]> {
       }
     }),
   );
+}
+
+// ---------- Séries históricas ----------
+
+/**
+ * Até 5 anos de cada série, com um ponto por mês (o último valor do mês).
+ * As séries diárias (Selic meta, CDI) têm ~1.800 pontos em 5 anos; mensal
+ * basta para o gráfico e deixa a resposta leve.
+ */
+export async function fetchMacroHistory(): Promise<MacroHistoryResponse["series"]> {
+  const now = new Date();
+  const start = new Date(now);
+  start.setFullYear(start.getFullYear() - 5);
+  const query = `?formato=json&dataInicial=${brDate(start)}&dataFinal=${brDate(now)}`;
+
+  const entries = await Promise.all(
+    SERIES.map(async (s) => {
+      try {
+        const raw = await sgsGet(s.sgsCode, query);
+        const byMonth = new Map<string, SeriesPoint>();
+        for (const p of raw) {
+          const date = brDateToIso(p.data);
+          const value = Number(p.valor);
+          if (!date || !Number.isFinite(value)) continue;
+          byMonth.set(date.slice(0, 7), { date, value }); // fica o último do mês
+        }
+        const points = [...byMonth.values()].sort((a, b) => a.date.localeCompare(b.date));
+        if (!points.length) throw new SourceError("O Banco Central não retornou dados para a série.");
+        return [s.id, { ok: true as const, points }] as const;
+      } catch (err) {
+        return [s.id, { ok: false as const, error: errorMessage(err) }] as const;
+      }
+    }),
+  );
+  return Object.fromEntries(entries) as MacroHistoryResponse["series"];
 }
 
 // ---------- PTAX ----------

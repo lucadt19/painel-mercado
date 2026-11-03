@@ -4,6 +4,7 @@ import { fxPairs, indices, trackedEtfs, watchlistSymbols, worldStocks } from "@/
 import type {
   AssetResponse,
   FxItem,
+  MacroHistoryResponse,
   MacroResponse,
   MarketListResponse,
   QuoteItem,
@@ -19,7 +20,7 @@ import {
   fetchQuotes,
   PlanError,
 } from "@/lib/server/brapi";
-import { fetchFxFromPtax, fetchMacroIndicators } from "@/lib/server/bcb";
+import { fetchFxFromPtax, fetchMacroHistory, fetchMacroIndicators } from "@/lib/server/bcb";
 import { fetchTreasuryBonds, TESOURO_SOURCE } from "@/lib/server/tesouro";
 import { errorMessage, isTransientError } from "@/lib/server/http";
 import { checkEstimatedQuota, WORLD_REFRESH_SECONDS } from "@/lib/server/quota";
@@ -168,6 +169,17 @@ export async function getMacro(): Promise<MacroResponse> {
     source: "Banco Central do Brasil (SGS)",
     items,
   };
+}
+
+/** Histórico de 5 anos das séries macro (página Renda Fixa). */
+export async function getMacroHistory(): Promise<MacroHistoryResponse> {
+  "use cache";
+  const series = await fetchMacroHistory();
+  if (Object.values(series).some((s) => !s.ok))
+    cacheLife({ stale: RETRY_SECONDS, revalidate: RETRY_SECONDS, expire: WEEK });
+  else cacheLife({ stale: 6 * 3600, revalidate: 6 * 3600, expire: WEEK });
+
+  return { generatedAt: new Date().toISOString(), source: "Banco Central do Brasil (SGS)", series };
 }
 
 export async function getTreasury(): Promise<TreasuryResponse> {

@@ -163,6 +163,16 @@ export type MacroResponse = {
   items: MacroItem[];
 };
 
+/** Um ponto de série histórica: data (AAAA-MM-DD) e valor em %. */
+export type SeriesPoint = { date: string; value: number };
+
+export type MacroHistoryResponse = {
+  generatedAt: string;
+  source: string;
+  /** Uma série por indicador; até 5 anos, um ponto por mês. */
+  series: Record<MacroIndicator["id"], Result<{ points: SeriesPoint[] }>>;
+};
+
 // ---------- Tesouro Direto (Tesouro Transparente) ----------
 
 export type TreasuryBond = {
