@@ -224,3 +224,12 @@ _(Adicionar aqui, com data, cada decisão tomada durante o projeto.)_
 - 03/11/2026: desenvolver com o plano Gratuito da brapi (~30 min de atraso). Avaliar a assinatura do plano Pro (~5 min) quando o site estiver no ar. O intervalo de polling é configurável por variável de ambiente (`QUOTES_REFRESH_SECONDS`), para mudar de plano sem mexer no código.
 - 03/11/2026: sem login nem senha. O site fica aberto; `noindex` e `robots.txt` o mantêm fora dos buscadores.
 - 03/11/2026: escolhas da etapa 1: dependências `next-themes`, `lucide-react`, `clsx` e `tailwind-merge`; o tema segue o sistema e, sem preferência, abre no escuro; o toggle guarda a escolha; cor de destaque índigo frio; nome provisório "Painel"; gerenciador de pacotes npm; navegação no celular em barra inferior fixa.
+- 03/11/2026: o tema usa um script inline (padrão recomendado pela documentação do Next 16) em vez de `next-themes`.
+- 03/11/2026: regra de dados: usar sempre a fonte mais recente e confiável disponível e mostrar, ao lado de cada informação, quando ela foi atualizada na fonte.
+- 03/11/2026: limites do plano Gratuito da brapi: 15.000 requisições/mês, 1 ticker por chamada, histórico de 3 meses, sem dividendos, fundamentos nem Tesouro. Por isso:
+  - Tesouro Direto vem do CSV oficial do Tesouro Transparente (taxas e preços do último dia útil, com a data-base exibida); cache de 1 hora, já que o arquivo muda uma vez por dia.
+  - Câmbio: brapi se o plano permitir; senão, PTAX do Banco Central (boletins ao longo do dia, com horário).
+  - Selic meta, CDI e IPCA: SGS do Banco Central, séries 432 (Selic meta), 4389 (CDI anualizado), 433 (IPCA mensal) e 13522 (IPCA 12 meses).
+- 03/11/2026: polling no navegador com SWR. Cache no servidor com `use cache` + `cacheLife` do Next 16: a resposta das rotas `/api/*` é compartilhada por todas as abas e se renova no intervalo configurado.
+- 03/11/2026: testado com o token: o câmbio da brapi exige o plano Startup (dólar e euro vêm da PTAX); a brapi limita a 20 chamadas por minuto (fazemos no máximo 3 por vez, com uma nova tentativa após 429); o IFIX volta como `IFIX.SA`. Para o servidor local confiar no antivírus Norton (que intercepta HTTPS), `npm run dev` usa `node --use-system-ca`.
+- 03/11/2026: horários e feriados da B3 ficam em `config/b3-calendario.ts`, a partir dos comunicados oficiais da B3; atualizar a cada ano e a cada mudança de horário (horário de verão dos EUA).

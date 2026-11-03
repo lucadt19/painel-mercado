@@ -4,6 +4,8 @@ import { siteName } from "@/config/site";
 import { SiteHeader } from "@/components/site-header";
 import { BottomNav } from "@/components/nav-links";
 import { themeInitScript } from "@/components/theme-toggle";
+import { AutoRefreshProvider } from "@/components/auto-refresh-provider";
+import { serverEnv } from "@/lib/server/env";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -41,9 +43,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body className="min-h-dvh">
-        <SiteHeader />
-        <main className="mx-auto max-w-6xl px-4 pt-8 pb-24 md:pb-12">{children}</main>
-        <BottomNav />
+        <AutoRefreshProvider delayMinutes={Math.round(serverEnv.quotesRefreshSeconds / 60)}>
+          <SiteHeader />
+          <main className="mx-auto max-w-6xl px-4 pt-8 pb-24 md:pb-12">{children}</main>
+          <BottomNav />
+        </AutoRefreshProvider>
       </body>
     </html>
   );
