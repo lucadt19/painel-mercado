@@ -1,0 +1,99 @@
+@import "tailwindcss";
+
+/* O tema escuro/claro é controlado pelo atributo data-theme no <html>. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/*
+ * Tokens de cor. Toda cor do site sai daqui: as cores padrão do Tailwind
+ * são desligadas no @theme abaixo, então uma cor "solta" nem compila.
+ */
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0b0d10;
+  --surface: #12151a;
+  --surface-hover: #181c22;
+  --border: #232830;
+  --text: #e6e8eb;
+  --text-muted: #8b93a1;
+  --accent: #8b93f5;
+  --accent-soft: #8b93f51f;
+  --up: #5bb98c;
+  --up-soft: #5bb98c26;
+  --down: #e0736e;
+  --down-soft: #e0736e26;
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-hover: #eff1f4;
+  --border: #e1e4e9;
+  --text: #14171c;
+  --text-muted: #5c6470;
+  --accent: #4f5ad6;
+  --accent-soft: #4f5ad61a;
+  --up: #1f8a5b;
+  --up-soft: #1f8a5b1a;
+  --down: #c8463f;
+  --down-soft: #c8463f1a;
+}
+
+@theme inline {
+  --color-*: initial;
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-hover: var(--surface-hover);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-muted: var(--text-muted);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-up: var(--up);
+  --color-up-soft: var(--up-soft);
+  --color-down: var(--down);
+  --color-down-soft: var(--down-soft);
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+@theme {
+  /* Escala tipográfica: 5 tamanhos, no máximo. */
+  --text-*: initial;
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1rem;
+  --text-sm: 0.8125rem;
+  --text-sm--line-height: 1.25rem;
+  --text-base: 0.875rem;
+  --text-base--line-height: 1.375rem;
+  --text-lg: 1.125rem;
+  --text-lg--line-height: 1.625rem;
+  --text-xl: 1.5rem;
+  --text-xl--line-height: 2rem;
+
+  /* Cantos: 8px nos cards. */
+  --radius-card: 0.5rem;
+
+  /* Transições curtas. */
+  --default-transition-duration: 150ms;
+
+  /* Espaçamento: a escala padrão do Tailwind (múltiplos de 4px). */
+}
+
+@layer base {
+  html {
+    background-color: var(--bg);
+  }
+
+  body {
+    @apply bg-bg font-sans text-base text-text antialiased;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
