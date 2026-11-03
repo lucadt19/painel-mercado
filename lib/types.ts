@@ -22,7 +22,7 @@ export type Quote = {
   previousClose: number | null;
   /** Horário da cotação informado pela brapi (ISO 8601). */
   updatedAt: string;
-  /** Fechamentos diários do período do plano (3 meses no Gratuito), do mais antigo ao mais novo. */
+  /** Fechamentos diários, do mais antigo ao mais novo. */
   history: PricePoint[];
 };
 
@@ -57,12 +57,85 @@ export type QuotesResponse = {
   refreshSeconds: number;
   /** Atraso aproximado das cotações, em minutos. */
   delayMinutes: number;
-  /** Período do histórico pedido à brapi ("3mo" no Gratuito, "1y" no Startup). */
-  historyRange: "3mo" | "1y";
+  /** Período do histórico obtido da brapi ("1y" ou, se o plano recusar, "3mo"). */
+  historyRange: HistoryRange;
   indices: QuoteItem[];
   watchlist: QuoteItem[];
+  /** ETFs acompanhados (página Ações & ETFs). */
+  etfs: QuoteItem[];
   fx: FxItem[];
 };
+
+export type HistoryRange = "3mo" | "1y";
+
+/** Aba Mundo: ações americanas, cotadas em dólar. */
+export type WorldResponse = {
+  generatedAt: string;
+  refreshSeconds: number;
+  historyRange: HistoryRange;
+  items: QuoteItem[];
+};
+
+// ---------- Lista completa de ativos da B3 (brapi /quote/list) ----------
+
+export type ListedAsset = {
+  symbol: string;
+  name: string;
+  /** Último preço (R$). A lista da brapi não informa o horário de cada cotação. */
+  price: number | null;
+  changePercent: number | null;
+  volume: number | null;
+  marketCap: number | null;
+  sector: string | null;
+  kind: "acao" | "fii" | "etf" | "bdr" | "outro";
+};
+
+export type MarketListResponse = {
+  generatedAt: string;
+  /** Hora em que o site consultou a lista (a fonte não informa o horário da cotação). */
+  fetchedAt: string;
+  refreshSeconds: number;
+} & Result<{ assets: ListedAsset[] }>;
+
+// ---------- Página de um ativo ----------
+
+export type Fundamentals = {
+  priceEarnings: number | null;
+  priceToBook: number | null;
+  /** Em %, ex.: 7.22. */
+  dividendYield: number | null;
+  marketCap: number | null;
+  /** Em %. */
+  netMargin: number | null;
+  /** Em %. */
+  roe: number | null;
+  /** Data do balanço mais recente usado nos indicadores (AAAA-MM-DD). */
+  balanceDate: string | null;
+};
+
+export type DividendPayment = {
+  /** "Dividendo", "JCP", "Rendimento"... */
+  label: string;
+  /** Valor por ação/cota, em R$. */
+  rate: number;
+  /** Data com (último dia para ter direito), AAAA-MM-DD. */
+  exDate: string | null;
+  /** Data de pagamento, AAAA-MM-DD. */
+  paymentDate: string | null;
+};
+
+export type AssetResponse = {
+  generatedAt: string;
+} & Result<{
+  quote: Quote;
+  /** Período do histórico obtido ("5y", ou menos se o plano recusar). */
+  historyRange: string;
+  fundamentals: Fundamentals;
+  /** Proventos com data com nos últimos 12 meses (inclui pagamentos futuros já anunciados). */
+  dividends: DividendPayment[];
+  /** O que o plano da brapi cobre (indicadores completos: Pro; proventos: Startup ou Pro). */
+  coverage: { fundamentals: boolean; dividends: boolean };
+}>;
 
 // ---------- Indicadores macro (BCB) ----------
 

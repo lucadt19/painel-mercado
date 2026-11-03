@@ -69,6 +69,28 @@ export function getMarketStatus(now: Date = new Date()): MarketStatus {
 }
 
 /**
+ * Bolsa de Nova York aberta (9h30–16h, seg–sex, no fuso de Nova York, que
+ * já considera o horário de verão americano)? Não considera os feriados dos
+ * EUA: nesses dias a página só faz uma consulta a mais por hora, que volta
+ * com o último fechamento.
+ * `marginMinutes` estende o fim para pegar o preço de fechamento com atraso.
+ */
+export function isNyseOpen(now: Date = new Date(), marginMinutes = 0): boolean {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    weekday: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(now);
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
+  const weekday = get("weekday");
+  if (weekday === "Sat" || weekday === "Sun") return false;
+  const minutes = Number(get("hour")) * 60 + Number(get("minute"));
+  return minutes >= 9 * 60 + 30 && minutes < 16 * 60 + marginMinutes;
+}
+
+/**
  * Cotações devem ser atualizadas agora? Sim durante o pregão e também por um
  * tempo depois do fechamento, igual ao atraso da fonte: o preço de fechamento
  * só chega depois desse atraso.

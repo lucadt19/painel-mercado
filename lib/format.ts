@@ -11,6 +11,20 @@ const dayKeyFmt = new Intl.DateTimeFormat("en-CA", { timeZone: TZ, year: "numeri
 /** R$ 1.234,56 */
 export const formatBRL = (n: number) => brl.format(n);
 
+const usd = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "USD" });
+
+/** US$ 1.234,56 */
+export const formatUSD = (n: number) => usd.format(n);
+
+/** Preço na moeda do ativo. */
+export const formatMoney = (n: number, currency: string) =>
+  currency === "USD" ? formatUSD(n) : formatBRL(n);
+
+const compact = new Intl.NumberFormat("pt-BR", { notation: "compact", maximumFractionDigits: 1 });
+
+/** 726,6 bi · 85,9 mi (valor de mercado, volume). */
+export const formatCompact = (n: number) => compact.format(n);
+
 const brl4 = new Intl.NumberFormat("pt-BR", {
   style: "currency",
   currency: "BRL",

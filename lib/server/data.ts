@@ -1,13 +1,28 @@
 import "server-only";
 import { cacheLife } from "next/cache";
-import { fxPairs, indices, watchlistSymbols } from "@/config/watchlist";
-import type { FxItem, MacroResponse, QuotesResponse, TreasuryResponse } from "@/lib/types";
+import { fxPairs, indices, trackedEtfs, watchlistSymbols, worldStocks } from "@/config/watchlist";
+import type {
+  AssetResponse,
+  FxItem,
+  MacroResponse,
+  MarketListResponse,
+  QuoteItem,
+  QuotesResponse,
+  TreasuryResponse,
+  WorldResponse,
+} from "@/lib/types";
 import { serverEnv } from "@/lib/server/env";
-import { fetchFxFromBrapi, fetchQuotes, PlanError } from "@/lib/server/brapi";
+import {
+  fetchAsset,
+  fetchFxFromBrapi,
+  fetchListedAssets,
+  fetchQuotes,
+  PlanError,
+} from "@/lib/server/brapi";
 import { fetchFxFromPtax, fetchMacroIndicators } from "@/lib/server/bcb";
 import { fetchTreasuryBonds, TESOURO_SOURCE } from "@/lib/server/tesouro";
 import { errorMessage, isTransientError } from "@/lib/server/http";
-import { checkEstimatedQuota } from "@/lib/server/quota";
+import { checkEstimatedQuota, WORLD_REFRESH_SECONDS } from "@/lib/server/quota";
 
 /*
  * Funções com cache compartilhado ("use cache"). A resposta fica guardada no
@@ -39,41 +54,105 @@ async function fetchFx(): Promise<FxItem[]> {
   return fetchFxFromPtax(pairs);
 }
 
+/**
+ * As tabelas só usam o primeiro ponto do histórico (variação no período) e
+ * o último mês (mini-gráfico). Enviar o ano inteiro de cada ativo pesaria
+ * no celular, então cortamos o resto.
+ */
+function slimHistory(items: QuoteItem[]): QuoteItem[] {
+  return items.map((i) =>
+    i.ok && i.quote.history.length > 25
+      ? { ...i, quote: { ...i.quote, history: [i.quote.history[0], ...i.quote.history.slice(-23)] } }
+      : i,
+  );
+}
+
+/** Falha passageira (limite por minuto, rede)? Então vale tentar de novo em 5 min. */
+const hasTransient = (items: { ok: boolean; error?: string }[]) =>
+  items.some((i) => !i.ok && isTransientError(i.error ?? ""));
+
 export async function getQuotes(): Promise<QuotesResponse> {
   "use cache";
   const refresh = serverEnv.quotesRefreshSeconds;
+  checkEstimatedQuota();
 
-  const symbols = indices.map((i) => i.symbol);
-  const callsPerRound =
-    Math.ceil(symbols.length / serverEnv.brapiMaxTickersPerRequest) +
-    Math.ceil(watchlistSymbols.length / serverEnv.brapiMaxTickersPerRequest) +
-    1; // câmbio
-  checkEstimatedQuota(callsPerRound);
+  // Índices + watchlist + ETFs acompanhados, sem repetir tickers.
+  const indexSymbols = indices.map((i) => i.symbol);
+  const assetSymbols = [...new Set([...watchlistSymbols, ...trackedEtfs])];
 
-  const [indexItems, watchItems, fx] = await Promise.all([
-    fetchQuotes(symbols),
-    fetchQuotes(watchlistSymbols),
+  const [idx, assets, fx] = await Promise.all([
+    fetchQuotes(indexSymbols),
+    fetchQuotes(assetSymbols),
     fetchFx(),
   ]);
+  const bySymbol = new Map(slimHistory(assets.items).map((i) => [i.symbol, i]));
 
-  // Falha passageira (limite por minuto, rede): tenta de novo em 5 minutos em
-  // vez de esperar o intervalo inteiro. Falhas permanentes (ticker inexistente,
-  // fora do plano) seguem o intervalo normal, para não gastar a cota.
-  const anyTransient = [...indexItems, ...watchItems, ...fx].some(
-    (i) => !i.ok && isTransientError(i.error),
-  );
-  if (anyTransient) cacheLife({ stale: RETRY_SECONDS, revalidate: RETRY_SECONDS, expire: WEEK });
+  // Falhas permanentes (ticker inexistente, fora do plano) seguem o intervalo
+  // normal, para não gastar a cota.
+  if (hasTransient([...idx.items, ...assets.items, ...fx]))
+    cacheLife({ stale: RETRY_SECONDS, revalidate: RETRY_SECONDS, expire: WEEK });
   else cacheLife({ stale: refresh, revalidate: refresh, expire: WEEK });
 
   return {
     generatedAt: new Date().toISOString(),
     refreshSeconds: refresh,
     delayMinutes: Math.round(refresh / 60),
-    historyRange: serverEnv.brapiHistoryRange,
-    indices: indexItems,
-    watchlist: watchItems,
+    historyRange: idx.rangeUsed === "3mo" || assets.rangeUsed === "3mo" ? "3mo" : "1y",
+    indices: slimHistory(idx.items),
+    watchlist: watchlistSymbols.map((s) => bySymbol.get(s)!),
+    etfs: trackedEtfs.map((s) => bySymbol.get(s)!),
     fx,
   };
+}
+
+/** Aba Mundo: grandes empresas estrangeiras, em dólar, de hora em hora. */
+export async function getWorld(): Promise<WorldResponse> {
+  "use cache";
+  checkEstimatedQuota();
+  const symbols = worldStocks.slice(0, serverEnv.worldLimit).map((w) => w.symbol);
+  const { items, rangeUsed } = await fetchQuotes(symbols);
+
+  if (hasTransient(items))
+    cacheLife({ stale: RETRY_SECONDS, revalidate: RETRY_SECONDS, expire: WEEK });
+  else cacheLife({ stale: WORLD_REFRESH_SECONDS, revalidate: WORLD_REFRESH_SECONDS, expire: WEEK });
+
+  return {
+    generatedAt: new Date().toISOString(),
+    refreshSeconds: WORLD_REFRESH_SECONDS,
+    historyRange: rangeUsed,
+    items: slimHistory(items),
+  };
+}
+
+/** Lista completa da B3 (busca e aba Brasil). */
+export async function getMarketList(): Promise<MarketListResponse> {
+  "use cache";
+  const refresh = serverEnv.quotesRefreshSeconds;
+  const now = new Date().toISOString();
+  try {
+    const assets = await fetchListedAssets();
+    cacheLife({ stale: refresh, revalidate: refresh, expire: WEEK });
+    return { generatedAt: now, fetchedAt: now, refreshSeconds: refresh, ok: true, assets };
+  } catch (err) {
+    cacheLife({ stale: RETRY_SECONDS, revalidate: RETRY_SECONDS, expire: WEEK });
+    return { generatedAt: now, fetchedAt: now, refreshSeconds: refresh, ok: false, error: errorMessage(err) };
+  }
+}
+
+/** Página de um ativo: 1 chamada, guardada por 30 min. */
+export async function getAsset(symbol: string): Promise<AssetResponse> {
+  "use cache";
+  const generatedAt = new Date().toISOString();
+  try {
+    const asset = await fetchAsset(symbol);
+    cacheLife({ stale: 1800, revalidate: 1800, expire: WEEK });
+    return { generatedAt, ok: true, ...asset };
+  } catch (err) {
+    const error = errorMessage(err);
+    const retry = isTransientError(error) ? RETRY_SECONDS : 1800;
+    cacheLife({ stale: retry, revalidate: retry, expire: WEEK });
+    return { generatedAt, ok: false, error };
+  }
 }
 
 export async function getMacro(): Promise<MacroResponse> {

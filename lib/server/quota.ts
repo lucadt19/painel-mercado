@@ -1,31 +1,44 @@
 import "server-only";
+import { indices, trackedEtfs, watchlistSymbols, worldStocks } from "@/config/watchlist";
 import { serverEnv } from "@/lib/server/env";
 
 /**
  * Controle da cota mensal da brapi.
  *
- * Estimativa = chamadas por rodada × rodadas por dia de pregão × dias úteis.
- * Uma "rodada" é uma renovação do cache de /api/quotes, que acontece no máximo
- * uma vez por QUOTES_REFRESH_SECONDS, não importa quantas abas estejam abertas.
+ * Estimativa = chamadas por rodada × rodadas por dia × dias úteis, somando:
+ *  - cotações (índices + watchlist + ETFs), a cada QUOTES_REFRESH_SECONDS no pregão da B3;
+ *  - lista completa de ativos (2 páginas), no mesmo ritmo;
+ *  - aba Mundo (1 chamada por empresa), de hora em hora no pregão americano.
+ * Páginas de ativo (1 chamada por ativo a cada 30 min) entram como folga.
  */
-const TRADING_HOURS_PER_DAY = 8.5; // 10h às 18h30 (pregão + margem do atraso)
+const B3_HOURS_PER_DAY = 8.5; // 10h às 18h30 (pregão + margem do atraso)
+const US_HOURS_PER_DAY = 7; // 9h30 às 16h30 em Nova York
 const TRADING_DAYS_PER_MONTH = 22;
+const LIST_CALLS_PER_ROUND = 2;
+export const WORLD_REFRESH_SECONDS = 3600;
 
-export function estimateMonthlyCalls(callsPerRound: number): number {
-  const roundsPerDay = Math.ceil((TRADING_HOURS_PER_DAY * 3600) / serverEnv.quotesRefreshSeconds);
-  return callsPerRound * roundsPerDay * TRADING_DAYS_PER_MONTH;
+const groups = (n: number) => Math.ceil(n / serverEnv.brapiMaxTickersPerRequest);
+
+export function estimateMonthlyCalls() {
+  const quoteSymbols = new Set([...indices.map((i) => i.symbol), ...watchlistSymbols, ...trackedEtfs]);
+  const b3Rounds = Math.ceil((B3_HOURS_PER_DAY * 3600) / serverEnv.quotesRefreshSeconds);
+  const usRounds = Math.ceil((US_HOURS_PER_DAY * 3600) / WORLD_REFRESH_SECONDS);
+  const quotes = groups(quoteSymbols.size) * b3Rounds;
+  const list = LIST_CALLS_PER_ROUND * b3Rounds;
+  const world = groups(Math.min(worldStocks.length, serverEnv.worldLimit)) * usRounds;
+  return (quotes + list + world) * TRADING_DAYS_PER_MONTH;
 }
 
 let warnedEstimate = false;
 
-/** Avisa no log se a estimativa passar de 80% da cota. */
-export function checkEstimatedQuota(callsPerRound: number) {
-  const estimate = estimateMonthlyCalls(callsPerRound);
+/** Avisa no log (uma vez) se a estimativa passar de 80% da cota. */
+export function checkEstimatedQuota() {
+  const estimate = estimateMonthlyCalls();
   const share = estimate / serverEnv.brapiMonthlyQuota;
   if (share > 0.8 && !warnedEstimate) {
     warnedEstimate = true;
     console.warn(
-      `[cota brapi] Estimativa de ${estimate} requisições/mês = ${Math.round(share * 100)}% da cota de ${serverEnv.brapiMonthlyQuota}. Reduza tickers ou aumente QUOTES_REFRESH_SECONDS.`,
+      `[cota brapi] Estimativa de ${estimate} requisições/mês = ${Math.round(share * 100)}% da cota de ${serverEnv.brapiMonthlyQuota}. Reduza tickers (watchlist, Mundo) ou aumente QUOTES_REFRESH_SECONDS.`,
     );
   }
   return { estimate, share };

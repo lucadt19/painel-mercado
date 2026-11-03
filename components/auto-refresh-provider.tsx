@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useMemo, useSyncExternalStore, type ReactNode } from "react";
 import { SWRConfig } from "swr";
-import { getMarketStatus, shouldPollQuotes, type MarketStatus } from "@/lib/market-hours";
+import { getMarketStatus, isNyseOpen, shouldPollQuotes, type MarketStatus } from "@/lib/market-hours";
 
 type AutoRefreshState = {
   /** null até o componente montar no navegador (o servidor não sabe a hora do usuário). */
@@ -10,6 +10,8 @@ type AutoRefreshState = {
   tabVisible: boolean;
   /** Cotações devem ser atualizadas agora (aba visível + pregão aberto ou recém-fechado). */
   pollQuotes: boolean;
+  /** Ações americanas (aba Mundo): aba visível + bolsa de Nova York aberta ou recém-fechada. */
+  pollWorld: boolean;
   delayMinutes: number;
 };
 
@@ -45,7 +47,8 @@ export function AutoRefreshProvider({
   const value = useMemo<AutoRefreshState>(() => {
     const market = tick === null ? null : getMarketStatus(new Date(tick * TICK_MS));
     const pollQuotes = tabVisible && market !== null && shouldPollQuotes(market, delayMinutes);
-    return { market, tabVisible, pollQuotes, delayMinutes };
+    const pollWorld = tabVisible && tick !== null && isNyseOpen(new Date(tick * TICK_MS), 60);
+    return { market, tabVisible, pollQuotes, pollWorld, delayMinutes };
   }, [tick, tabVisible, delayMinutes]);
 
   return (

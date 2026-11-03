@@ -3,7 +3,10 @@
 import useSWR from "swr";
 import { useAutoRefresh } from "@/components/auto-refresh-provider";
 import type {
+  AssetResponse,
   FxItem,
+  MarketListResponse,
+  WorldResponse,
   MacroResponse,
   QuoteItem,
   QuotesResponse,
@@ -32,6 +35,8 @@ async function getJson<T>(url: string): Promise<T> {
 // Último valor bom de cada ativo, para não apagar a tela quando a fonte falha.
 const lastGoodQuotes = new Map<string, QuoteItem>();
 const lastGoodFx = new Map<string, FxItem>();
+const lastGoodEtfs = new Map<string, QuoteItem>();
+const lastGoodWorld = new Map<string, QuoteItem>();
 
 function keepLastGood<T extends { ok: boolean }>(
   items: T[],
@@ -55,9 +60,10 @@ function keepLastGood<T extends { ok: boolean }>(
   });
 }
 
-export type QuotesData = Omit<QuotesResponse, "indices" | "watchlist" | "fx"> & {
+export type QuotesData = Omit<QuotesResponse, "indices" | "watchlist" | "etfs" | "fx"> & {
   indices: WithStale<QuoteItem>[];
   watchlist: WithStale<QuoteItem>[];
+  etfs: WithStale<QuoteItem>[];
   fx: WithStale<FxItem>[];
 };
 
@@ -67,6 +73,9 @@ async function fetchQuotes(url: string): Promise<QuotesData> {
     ...data,
     indices: keepLastGood(data.indices, lastGoodQuotes, (i) => i.symbol),
     watchlist: keepLastGood(data.watchlist, lastGoodQuotes, (i) => i.symbol),
+    // Os ETFs repetem tickers da watchlist; usam um mapa próprio para o flash
+    // não ser "consumido" pela watchlist antes.
+    etfs: keepLastGood(data.etfs, lastGoodEtfs, (i) => i.symbol),
     fx: keepLastGood(data.fx, lastGoodFx, (i) => i.pair),
   };
 }
@@ -89,4 +98,47 @@ export function useMacro() {
 /** Tesouro Direto: o arquivo oficial muda uma vez por dia útil; checa de hora em hora. */
 export function useTreasury() {
   return useSWR<TreasuryResponse>("/api/treasury", getJson, { refreshInterval: HOUR });
+}
+
+export type WorldData = Omit<WorldResponse, "items"> & { items: WithStale<QuoteItem>[] };
+
+async function fetchWorld(url: string): Promise<WorldData> {
+  const data = await getJson<WorldResponse>(url);
+  return { ...data, items: keepLastGood(data.items, lastGoodWorld, (i) => i.symbol) };
+}
+
+/** Aba Mundo: de hora em hora, só com a bolsa de Nova York aberta. */
+export function useWorld() {
+  const { pollWorld } = useAutoRefresh();
+  return useSWR<WorldData>("/api/world", fetchWorld, {
+    refreshInterval: (latest) => (pollWorld && latest ? latest.refreshSeconds * 1000 : 0),
+  });
+}
+
+// Última lista boa: se uma atualização falhar, a tabela continua com ela
+// (e com o horário da consulta que deu certo).
+let lastGoodList: MarketListResponse | undefined;
+
+async function fetchMarketList(url: string): Promise<MarketListResponse> {
+  const data = await getJson<MarketListResponse>(url);
+  if (data.ok) lastGoodList = data;
+  return data.ok || !lastGoodList ? data : lastGoodList;
+}
+
+/** Lista completa da B3: no mesmo ritmo das cotações. */
+export function useMarketList() {
+  const { pollQuotes } = useAutoRefresh();
+  return useSWR<MarketListResponse>("/api/market-list", fetchMarketList, {
+    refreshInterval: (latest) => (pollQuotes && latest ? latest.refreshSeconds * 1000 : 0),
+    // A lista é grande; não precisa rebuscar a cada foco na aba.
+    revalidateOnFocus: false,
+  });
+}
+
+/** Página de um ativo: atualiza a cada 30 min com o pregão aberto. */
+export function useAsset(ticker: string) {
+  const { pollQuotes, pollWorld } = useAutoRefresh();
+  return useSWR<AssetResponse>(`/api/asset/${encodeURIComponent(ticker)}`, getJson, {
+    refreshInterval: pollQuotes || pollWorld ? 1800 * 1000 : 0,
+  });
 }

@@ -21,7 +21,46 @@ export const shortNames: Record<string, string> = {
   BOVA11: "ETF Ibovespa",
   IVVB11: "ETF S&P 500",
   SMAL11: "ETF Small Caps",
+  HASH11: "ETF Cripto",
 };
+
+/** ETFs da seção "ETFs acompanhados" da página Ações & ETFs. */
+export const trackedEtfs = ["BOVA11", "IVVB11", "SMAL11", "HASH11"];
+
+/**
+ * Aba "Mundo": grandes empresas estrangeiras, cotadas em dólar na bolsa
+ * americana. No plano Gratuito só as 8 primeiras são cotadas (limite de 20
+ * chamadas por minuto da brapi); as demais aparecem na busca e nos BDRs.
+ * A ordem importa: deixe as mais importantes para você no topo.
+ * `bdr` liga a empresa ao BDR negociado na B3, quando existe.
+ */
+export const worldStocks: { symbol: string; name: string; bdr?: string }[] = [
+  { symbol: "AAPL", name: "Apple", bdr: "AAPL34" },
+  { symbol: "MSFT", name: "Microsoft", bdr: "MSFT34" },
+  { symbol: "NVDA", name: "Nvidia", bdr: "NVDC34" },
+  { symbol: "GOOGL", name: "Alphabet (Google)", bdr: "GOGL34" },
+  { symbol: "AMZN", name: "Amazon", bdr: "AMZO34" },
+  { symbol: "META", name: "Meta (Facebook)", bdr: "M1TA34" },
+  { symbol: "AVGO", name: "Broadcom", bdr: "AVGO34" },
+  { symbol: "TSLA", name: "Tesla", bdr: "TSLA34" },
+  { symbol: "TSM", name: "TSMC", bdr: "TSMC34" },
+  { symbol: "BRK-B", name: "Berkshire Hathaway", bdr: "BERK34" },
+  { symbol: "JPM", name: "JPMorgan Chase", bdr: "JPMC34" },
+  { symbol: "V", name: "Visa", bdr: "VISA34" },
+  { symbol: "LLY", name: "Eli Lilly", bdr: "LILY34" },
+  { symbol: "WMT", name: "Walmart", bdr: "WALM34" },
+  { symbol: "MA", name: "Mastercard", bdr: "MSCD34" },
+  { symbol: "ORCL", name: "Oracle", bdr: "ORCL34" },
+  { symbol: "NFLX", name: "Netflix", bdr: "NFLX34" },
+  { symbol: "XOM", name: "Exxon Mobil", bdr: "EXXO34" },
+  { symbol: "COST", name: "Costco", bdr: "COWC34" },
+  { symbol: "UNH", name: "UnitedHealth", bdr: "UNHH34" },
+  { symbol: "JNJ", name: "Johnson & Johnson", bdr: "JNJB34" },
+  { symbol: "PG", name: "Procter & Gamble", bdr: "PGCO34" },
+  { symbol: "HD", name: "Home Depot", bdr: "HOME34" },
+  { symbol: "ASML", name: "ASML", bdr: "ASML34" },
+  { symbol: "BAC", name: "Bank of America", bdr: "BOAC34" },
+];
 
 /** Título do Tesouro mostrado no card de renda fixa da Visão Geral. */
 export const treasuryReference = { title: "Tesouro IPCA+", maturity: "2035-05-15" };
