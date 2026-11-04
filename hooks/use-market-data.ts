@@ -5,6 +5,7 @@ import { useAutoRefresh } from "@/components/auto-refresh-provider";
 import type {
   AssetResponse,
   EarningsResponse,
+  FxHistoryResponse,
   MacroHistoryResponse,
   NewsResponse,
   FxItem,
@@ -205,6 +206,14 @@ export function useTreasuryHistory(id: string | null) {
     getJson,
     { refreshInterval: 6 * HOUR, revalidateOnFocus: false },
   );
+}
+
+/** Histórico da PTAX de uma moeda: o BC publica o fechamento 1 vez por dia; checa de hora em hora. */
+export function useFxHistory(pair: string) {
+  return useSWR<FxHistoryResponse>(`/api/fx-history/${encodeURIComponent(pair)}`, getJson, {
+    refreshInterval: HOUR,
+    revalidateOnFocus: false,
+  });
 }
 
 /** Selos de resultado divulgado: checa a cada 30 min com a aba visível. */

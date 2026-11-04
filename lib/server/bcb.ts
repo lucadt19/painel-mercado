@@ -106,6 +106,27 @@ export async function fetchMacroHistory(): Promise<MacroHistoryResponse["series"
   return Object.fromEntries(entries) as MacroHistoryResponse["series"];
 }
 
+/** PTAX de venda diária no SGS (conferidos em 04/11/2026). */
+export const FX_HISTORY_SERIES: Record<string, number> = { "USD-BRL": 1, "EUR-BRL": 21619 };
+
+/** Histórico diário da PTAX de venda, até 5 anos (~1.250 pontos). */
+export async function fetchFxHistory(pair: string): Promise<SeriesPoint[]> {
+  const code = FX_HISTORY_SERIES[pair];
+  if (!code) throw new SourceError("Moeda sem histórico configurado.");
+  const now = new Date();
+  const start = new Date(now);
+  start.setFullYear(start.getFullYear() - 5);
+  const raw = await sgsGet(code, `?formato=json&dataInicial=${brDate(start)}&dataFinal=${brDate(now)}`);
+  const points: SeriesPoint[] = [];
+  for (const p of raw) {
+    const date = brDateToIso(p.data);
+    const value = Number(p.valor);
+    if (date && Number.isFinite(value)) points.push({ date, value });
+  }
+  if (!points.length) throw new SourceError("O Banco Central não retornou dados para a série.");
+  return points;
+}
+
 // ---------- PTAX ----------
 
 type PtaxPoint = {

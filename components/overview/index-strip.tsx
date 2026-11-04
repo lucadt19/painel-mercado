@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { fxPairs, indices } from "@/config/watchlist";
 import { useQuotes, type QuotesData } from "@/hooks/use-market-data";
 import { formatBRL4, formatNumber } from "@/lib/format";
@@ -64,12 +65,22 @@ function tileData(slot: Slot, data: QuotesData): TileData | { error: string } {
   };
 }
 
-function Tile({ label, children }: { label: string; children: React.ReactNode }) {
+/** Clicar no card abre o histórico: índices na página do ativo, moedas na página do câmbio. */
+const hrefOf = (slot: Slot) =>
+  slot.kind === "index" ? `/acoes/${encodeURIComponent(slot.symbol)}` : `/cambio/${slot.pair.toLowerCase()}`;
+
+function Tile({ label, href, children }: { label: string; href: string; children: React.ReactNode }) {
   return (
-    <Card className="flex min-w-[10.5rem] shrink-0 snap-start flex-col gap-1 p-3 md:min-w-0">
-      <div className="text-xs text-muted">{label}</div>
-      {children}
-    </Card>
+    <Link
+      href={href}
+      aria-label={`${label}: ver histórico`}
+      className="group min-w-[10.5rem] shrink-0 snap-start rounded-card md:min-w-0"
+    >
+      <Card className="flex h-full flex-col gap-1 p-3 transition-colors duration-150 group-hover:border-border-strong group-hover:bg-surface-hover">
+        <div className="text-xs text-muted">{label}</div>
+        {children}
+      </Card>
+    </Link>
   );
 }
 
@@ -85,7 +96,7 @@ export function IndexStrip() {
 
           if (!data) {
             return (
-              <Tile key={key} label={slot.label}>
+              <Tile key={key} label={slot.label} href={hrefOf(slot)}>
                 {error ? (
                   <p className="py-3 text-xs text-muted">Dados indisponíveis no momento</p>
                 ) : (
@@ -102,7 +113,7 @@ export function IndexStrip() {
           const t = tileData(slot, data);
           if ("error" in t) {
             return (
-              <Tile key={key} label={slot.label}>
+              <Tile key={key} label={slot.label} href={hrefOf(slot)}>
                 <p className="py-3 text-xs text-muted" title={t.error}>
                   Dados indisponíveis no momento
                 </p>
@@ -111,7 +122,7 @@ export function IndexStrip() {
           }
 
           return (
-            <Tile key={key} label={slot.label}>
+            <Tile key={key} label={slot.label} href={hrefOf(slot)}>
               <div
                 key={`${t.updatedAt}-${t.value}`}
                 className={cn(

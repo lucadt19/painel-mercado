@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useMemo, useState } from "react";
+import { CalendarDays, TrendingUp } from "lucide-react";
 import {
   PRODUCTS,
   productById,
@@ -149,6 +150,78 @@ function InvestmentForm({
 }
 
 // ---------- Resultado ----------
+
+/** Faixa do IR pelo prazo, no nome usado pelas corretoras. */
+function termLabel(days: number) {
+  if (days <= 180) return "Curto prazo (até 180 dias)";
+  if (days <= 360) return "181 a 360 dias";
+  if (days <= 720) return "361 a 720 dias";
+  return "Longo prazo (acima de 720 dias)";
+}
+
+/** Resumo de um investimento no resgate final: rentabilidade líquida ao ano, prazo e IR. */
+function SummaryCard({
+  tag,
+  form,
+  end,
+  best,
+}: {
+  tag: string;
+  form: FormState;
+  end: Snapshot;
+  best: boolean;
+}) {
+  const product = productById(form.product);
+  return (
+    <Card className={cn("flex flex-col gap-3 p-4", best && "border-accent")}>
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <p className="text-xs text-muted">Investimento {tag}</p>
+          <h3 className="text-base font-semibold">{product.label}</h3>
+          <p className="text-xs text-muted">{rateText(form.kind, parseRate(form.rate))}</p>
+        </div>
+        {best && (
+          <span className="rounded bg-accent-soft px-1.5 py-px text-xs font-medium text-accent">Rende mais</span>
+        )}
+      </div>
+
+      <div className="flex items-center gap-2">
+        <TrendingUp aria-hidden className="size-4 text-muted" />
+        <span className="text-sm text-muted">Rentabilidade líquida</span>
+        <span className="ml-auto text-xl font-semibold tabular-nums">
+          {pct(end.netAnnual)} <span className="text-xs font-normal text-muted">a.a.</span>
+        </span>
+      </div>
+      <div className="flex items-center gap-2">
+        <CalendarDays aria-hidden className="size-4 text-muted" />
+        <span className="text-sm text-muted">Período</span>
+        <span className="ml-auto text-sm font-medium tabular-nums">
+          {end.month} {end.month === 1 ? "mês" : "meses"}
+        </span>
+      </div>
+
+      <span className="w-fit rounded-full border border-border-strong px-2 py-0.5 text-xs">{termLabel(end.days)}</span>
+
+      <div className="rounded-md bg-surface-hover px-3 py-2 text-sm">
+        {end.irRate === 0 ? (
+          "Este investimento é isento de Imposto de Renda."
+        ) : (
+          <>
+            Alíquota do IR: <strong className="font-semibold tabular-nums">{formatNumber(end.irRate * 100)}%</strong>
+            <span className="text-muted"> sobre o ganho ({formatBRL(end.ir)})</span>
+          </>
+        )}
+        {end.custody > 0.005 && (
+          <span className="block text-xs text-muted">Custódia da B3 no período: {formatBRL(end.custody)}</span>
+        )}
+      </div>
+
+      <p className="text-xs text-muted">
+        Valor líquido no resgate: <span className="font-medium tabular-nums text-text">{formatBRL(end.net)}</span>
+      </p>
+    </Card>
+  );
+}
 
 function ResultTable({ title, rows, amount }: { title: string; rows: Snapshot[]; amount: number }) {
   const hasCustody = rows.some((r) => r.custody > 0.005);
@@ -344,6 +417,11 @@ export function Comparator() {
       ) : (
         result && (
           <>
+            <div className="grid gap-4 md:grid-cols-2">
+              <SummaryCard tag="A" form={a} end={result.simA[result.simA.length - 1]} best={result.winner === a} />
+              <SummaryCard tag="B" form={b} end={result.simB[result.simB.length - 1]} best={result.winner === b} />
+            </div>
+
             <Card className="flex flex-col gap-2 p-4">
               <p className="text-base">
                 <strong className="font-semibold">{labelOf(result.winner)}</strong> rende mais

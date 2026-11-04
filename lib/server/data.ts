@@ -4,6 +4,7 @@ import { fxPairs, indices, trackedEtfs, watchlistSymbols, worldStocks } from "@/
 import type {
   AssetResponse,
   EarningsResponse,
+  FxHistoryResponse,
   FxItem,
   MacroHistoryResponse,
   MacroResponse,
@@ -23,7 +24,7 @@ import {
   fetchQuotes,
   PlanError,
 } from "@/lib/server/brapi";
-import { fetchFxFromPtax, fetchMacroHistory, fetchMacroIndicators } from "@/lib/server/bcb";
+import { fetchFxFromPtax, fetchFxHistory, fetchMacroHistory, fetchMacroIndicators } from "@/lib/server/bcb";
 import { fetchTreasuryAll, TESOURO_SOURCE } from "@/lib/server/tesouro";
 import { fetchNews } from "@/lib/server/news";
 import { buildEarnings, fetchCvmFilings } from "@/lib/server/earnings";
@@ -229,6 +230,21 @@ export async function getTreasuryHistory(id: string): Promise<TreasuryHistoryRes
   } catch (err) {
     cacheLife({ stale: RETRY_SECONDS, revalidate: RETRY_SECONDS, expire: WEEK });
     return { generatedAt, source: TESOURO_SOURCE, ok: false, error: errorMessage(err) };
+  }
+}
+
+/** Histórico da PTAX de uma moeda (página do câmbio): 1 ponto por dia útil, renovado a cada hora. */
+export async function getFxHistory(pair: string): Promise<FxHistoryResponse> {
+  "use cache";
+  const generatedAt = new Date().toISOString();
+  const source = "PTAX de venda · Banco Central do Brasil (SGS)";
+  try {
+    const points = await fetchFxHistory(pair);
+    cacheLife({ stale: 3600, revalidate: 3600, expire: WEEK });
+    return { generatedAt, source, pair, ok: true, points };
+  } catch (err) {
+    cacheLife({ stale: RETRY_SECONDS, revalidate: RETRY_SECONDS, expire: WEEK });
+    return { generatedAt, source, pair, ok: false, error: errorMessage(err) };
   }
 }
 

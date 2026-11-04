@@ -173,6 +173,13 @@ export type MacroHistoryResponse = {
   series: Record<MacroIndicator["id"], Result<{ points: SeriesPoint[] }>>;
 };
 
+/** Histórico diário da PTAX (venda) de uma moeda, até 5 anos. */
+export type FxHistoryResponse = {
+  generatedAt: string;
+  source: string;
+  pair: string;
+} & Result<{ points: SeriesPoint[] }>;
+
 // ---------- Notícias (RSS) ----------
 
 export type NewsItem = {
