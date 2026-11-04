@@ -47,19 +47,50 @@ const RETRY_MS = 150 * 1000;
 /** Algum item falhou nesta rodada (mesmo que a tela mostre o valor anterior)? */
 const anyFailed = (items: { ok: boolean; stale?: unknown }[]) => items.some((i) => !i.ok || i.stale);
 
-// Último valor bom de cada ativo, para não apagar a tela quando a fonte falha.
-const lastGoodQuotes = new Map<string, QuoteItem>();
-const lastGoodFx = new Map<string, FxItem>();
-const lastGoodEtfs = new Map<string, QuoteItem>();
-const lastGoodWorld = new Map<string, QuoteItem>();
+/*
+ * Último valor bom de cada ativo, para não apagar a tela quando a fonte falha.
+ * Fica também no armazenamento do navegador: abrindo o site do zero durante
+ * uma falha, aparecem os últimos números (com o horário deles), não "indisponível".
+ */
+const STORAGE_KEY = "painel:ultimos-valores:v1";
+type StoreName = "quotes" | "fx" | "etfs" | "world" | "macro";
 
-function keepLastGood<T extends { ok: boolean }>(
+function readSaved(): Partial<Record<StoreName, [string, unknown][]>> {
+  if (typeof window === "undefined") return {};
+  try {
+    return JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? "{}");
+  } catch {
+    return {};
+  }
+}
+const saved = readSaved();
+const stores: Record<StoreName, Map<string, unknown>> = {
+  quotes: new Map(saved.quotes),
+  fx: new Map(saved.fx),
+  etfs: new Map(saved.etfs),
+  world: new Map(saved.world),
+  macro: new Map(saved.macro),
+};
+
+function persistStores() {
+  try {
+    const data = Object.fromEntries(Object.entries(stores).map(([name, map]) => [name, [...map]]));
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch {
+    // Armazenamento bloqueado (janela anônima, por exemplo): fica só na memória.
+  }
+}
+
+function keepLastGood<T extends { ok: boolean; stale?: { error: string } }>(
   items: T[],
-  store: Map<string, T>,
+  name: StoreName,
   key: (item: T) => string,
 ): WithStale<T>[] {
+  const store = stores[name] as Map<string, T>;
   return items.map((item) => {
     const k = key(item);
+    // Valor antigo vindo do servidor (a fonte falhou lá): mostra como está.
+    if (item.ok && item.stale) return item;
     if (item.ok) {
       const before = priceOf(store.get(k));
       const now = priceOf(item);
@@ -84,15 +115,17 @@ export type QuotesData = Omit<QuotesResponse, "indices" | "watchlist" | "etfs" |
 
 async function fetchQuotes(url: string): Promise<QuotesData> {
   const data = await getJson<QuotesResponse>(url);
-  return {
+  const result = {
     ...data,
-    indices: keepLastGood(data.indices, lastGoodQuotes, (i) => i.symbol),
-    watchlist: keepLastGood(data.watchlist, lastGoodQuotes, (i) => i.symbol),
+    indices: keepLastGood(data.indices, "quotes", (i) => i.symbol),
+    watchlist: keepLastGood(data.watchlist, "quotes", (i) => i.symbol),
     // Os ETFs repetem tickers da watchlist; usam um mapa próprio para o flash
     // não ser "consumido" pela watchlist antes.
-    etfs: keepLastGood(data.etfs, lastGoodEtfs, (i) => i.symbol),
-    fx: keepLastGood(data.fx, lastGoodFx, (i) => i.pair),
+    etfs: keepLastGood(data.etfs, "etfs", (i) => i.symbol),
+    fx: keepLastGood(data.fx, "fx", (i) => i.pair),
   };
+  persistStores();
+  return result;
 }
 
 /** Cotações: atualiza no intervalo do plano da brapi, só com o pregão aberto. */
@@ -111,7 +144,17 @@ const HOUR = 3600 * 1000;
 
 /** Selic, CDI e IPCA: mudam no máximo uma vez por dia; checa de hora em hora. */
 export function useMacro() {
-  return useSWR<MacroResponse>("/api/macro", getJson, { refreshInterval: HOUR });
+  return useSWR<MacroResponse>("/api/macro", fetchMacro, {
+    refreshInterval: (latest) => (latest?.items.some((i) => !i.ok || i.stale) ? RETRY_MS : HOUR),
+  });
+}
+
+/** Indicador que falhou: fica o último valor bom (o card mostra a data de referência dele). */
+async function fetchMacro(url: string): Promise<MacroResponse> {
+  const data = await getJson<MacroResponse>(url);
+  const result = { ...data, items: keepLastGood(data.items, "macro", (i) => i.id) };
+  persistStores();
+  return result;
 }
 
 /** Tesouro Direto: o arquivo oficial muda uma vez por dia útil; checa de hora em hora. */
@@ -123,7 +166,9 @@ export type WorldData = Omit<WorldResponse, "items"> & { items: WithStale<QuoteI
 
 async function fetchWorld(url: string): Promise<WorldData> {
   const data = await getJson<WorldResponse>(url);
-  return { ...data, items: keepLastGood(data.items, lastGoodWorld, (i) => i.symbol) };
+  const result = { ...data, items: keepLastGood(data.items, "world", (i) => i.symbol) };
+  persistStores();
+  return result;
 }
 
 /** Aba Mundo: de hora em hora, só com a bolsa de Nova York aberta. */

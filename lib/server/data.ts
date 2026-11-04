@@ -78,6 +78,30 @@ function slimHistory(items: QuoteItem[]): QuoteItem[] {
 const hasTransient = (items: { ok: boolean; error?: string }[]) =>
   items.some((i) => !i.ok && isTransientError(i.error ?? ""));
 
+/**
+ * Último valor bom de cada ativo, no servidor. Se a fonte falhar por motivo
+ * passageiro, devolvemos esse valor (marcado como `stale`, com o horário
+ * original) em vez de "indisponível". Vale enquanto a instância do servidor
+ * estiver viva; o navegador tem a sua própria cópia, que sobrevive a isso.
+ */
+const lastGood = ((globalThis as typeof globalThis & { __lastGoodItems?: Map<string, unknown> }).__lastGoodItems ??=
+  new Map<string, unknown>());
+
+function withLastGood<T extends { ok: boolean; error?: string; stale?: { error: string } }>(
+  items: T[],
+  key: (item: T) => string,
+): T[] {
+  return items.map((item) => {
+    const k = key(item);
+    if (item.ok) {
+      lastGood.set(k, item);
+      return item;
+    }
+    const previous = lastGood.get(k) as T | undefined;
+    return previous && isTransientError(item.error ?? "") ? { ...previous, stale: { error: item.error! } } : item;
+  });
+}
+
 export async function getQuotes(): Promise<QuotesResponse> {
   "use cache";
   const refresh = serverEnv.quotesRefreshSeconds;
@@ -92,31 +116,47 @@ export async function getQuotes(): Promise<QuotesResponse> {
     fetchQuotes(assetSymbols),
     fetchFx(),
   ]);
-  const bySymbol = new Map(slimHistory(assets.items).map((i) => [i.symbol, i]));
-
   // Falhas permanentes (ticker inexistente, fora do plano) seguem o intervalo
   // normal, para não gastar a cota.
   if (hasTransient([...idx.items, ...assets.items, ...fx]))
     cacheLife({ stale: RETRY_SECONDS, revalidate: RETRY_SECONDS, expire: WEEK });
   else cacheLife({ stale: refresh, revalidate: refresh, expire: WEEK });
 
+  const bySymbol = new Map(
+    withLastGood(slimHistory(assets.items), (i) => `q:${i.symbol}`).map((i) => [i.symbol, i]),
+  );
+
   return {
     generatedAt: new Date().toISOString(),
     refreshSeconds: refresh,
     delayMinutes: Math.round(refresh / 60),
     historyRange: idx.rangeUsed === "3mo" || assets.rangeUsed === "3mo" ? "3mo" : "1y",
-    indices: slimHistory(idx.items),
+    indices: withLastGood(slimHistory(idx.items), (i) => `q:${i.symbol}`),
     watchlist: watchlistSymbols.map((s) => bySymbol.get(s)!),
     etfs: trackedEtfs.map((s) => bySymbol.get(s)!),
-    fx,
+    fx: withLastGood(fx, (i) => `fx:${i.pair}`),
   };
 }
 
 /** Aba Mundo: grandes empresas estrangeiras, em dólar, de hora em hora. */
 export async function getWorld(): Promise<WorldResponse> {
   "use cache";
-  checkEstimatedQuota();
   const symbols = worldStocks.slice(0, serverEnv.worldLimit).map((w) => w.symbol);
+
+  // Na publicação (build), todas as rotas consultam a brapi ao mesmo tempo, em
+  // processos separados, e passam das 20 chamadas/min. A aba Mundo (8 chamadas)
+  // fica para o primeiro acesso, 1 min depois; assim as cotações principais cabem.
+  if (process.env.NEXT_PHASE === "phase-production-build") {
+    cacheLife({ stale: 60, revalidate: 60, expire: WEEK });
+    return {
+      generatedAt: new Date().toISOString(),
+      refreshSeconds: WORLD_REFRESH_SECONDS,
+      historyRange: serverEnv.brapiHistoryRange,
+      items: symbols.map((symbol) => ({ symbol, ok: false, error: "Aguardando a primeira consulta após a publicação." })),
+    };
+  }
+
+  checkEstimatedQuota();
   const { items, rangeUsed } = await fetchQuotes(symbols);
 
   if (hasTransient(items))
@@ -127,7 +167,7 @@ export async function getWorld(): Promise<WorldResponse> {
     generatedAt: new Date().toISOString(),
     refreshSeconds: WORLD_REFRESH_SECONDS,
     historyRange: rangeUsed,
-    items: slimHistory(items),
+    items: withLastGood(slimHistory(items), (i) => `w:${i.symbol}`),
   };
 }
 
@@ -173,7 +213,8 @@ export async function getMacro(): Promise<MacroResponse> {
   return {
     generatedAt: new Date().toISOString(),
     source: "Banco Central do Brasil (SGS)",
-    items,
+    // O card mostra a data de referência do próprio dado, então o valor anterior continua correto.
+    items: withLastGood(items, (i) => `m:${i.id}`),
   };
 }
 

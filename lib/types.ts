@@ -29,7 +29,13 @@ export type Quote = {
 /** Um ponto de histórico: data (AAAA-MM-DD) e preço. */
 export type PricePoint = { date: string; close: number };
 
-export type QuoteItem = { symbol: string } & Result<{ quote: Quote }>;
+/**
+ * `stale`: a fonte falhou nesta rodada e este é o último valor bom (com o
+ * horário original dele). A tela avisa "último dado de ...".
+ */
+export type Stale = { stale?: { error: string } };
+
+export type QuoteItem = { symbol: string } & Result<{ quote: Quote }> & Stale;
 
 // ---------- Câmbio ----------
 
@@ -48,7 +54,7 @@ export type FxRate = {
   history: PricePoint[];
 };
 
-export type FxItem = { pair: string } & Result<{ rate: FxRate }>;
+export type FxItem = { pair: string } & Result<{ rate: FxRate }> & Stale;
 
 export type QuotesResponse = {
   /** Quando o servidor montou esta resposta (ISO). */
@@ -155,7 +161,7 @@ export type MacroIndicator = {
   sgsCode: number;
 };
 
-export type MacroItem = { id: MacroIndicator["id"] } & Result<{ indicator: MacroIndicator }>;
+export type MacroItem = { id: MacroIndicator["id"] } & Result<{ indicator: MacroIndicator }> & Stale;
 
 export type MacroResponse = {
   generatedAt: string;
