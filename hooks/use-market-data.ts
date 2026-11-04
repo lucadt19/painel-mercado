@@ -5,6 +5,7 @@ import { useAutoRefresh } from "@/components/auto-refresh-provider";
 import type {
   AssetResponse,
   MacroHistoryResponse,
+  NewsResponse,
   FxItem,
   MarketListResponse,
   WorldResponse,
@@ -150,4 +151,9 @@ export function useMacroHistory() {
     refreshInterval: 6 * HOUR,
     revalidateOnFocus: false,
   });
+}
+
+/** Manchetes: a cada 5 minutos com a aba visível (independe do pregão). */
+export function useNews() {
+  return useSWR<NewsResponse>("/api/news", getJson, { refreshInterval: 5 * 60 * 1000 });
 }

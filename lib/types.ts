@@ -173,6 +173,26 @@ export type MacroHistoryResponse = {
   series: Record<MacroIndicator["id"], Result<{ points: SeriesPoint[] }>>;
 };
 
+// ---------- Notícias (RSS) ----------
+
+export type NewsItem = {
+  /** Link da matéria original (também serve de identificador). */
+  link: string;
+  title: string;
+  sourceId: string;
+  sourceName: string;
+  /** Horário de publicação informado pelo veículo (ISO). */
+  publishedAt: string;
+  theme: "mercado" | "economia" | "empresas";
+};
+
+export type NewsResponse = {
+  generatedAt: string;
+  sources: ({ id: string; name: string } & Result<{ count: number }>)[];
+  /** Mais recentes primeiro. */
+  items: NewsItem[];
+};
+
 // ---------- Tesouro Direto (Tesouro Transparente) ----------
 
 export type TreasuryBond = {

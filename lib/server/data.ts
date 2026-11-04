@@ -7,6 +7,7 @@ import type {
   MacroHistoryResponse,
   MacroResponse,
   MarketListResponse,
+  NewsResponse,
   QuoteItem,
   QuotesResponse,
   TreasuryResponse,
@@ -22,6 +23,7 @@ import {
 } from "@/lib/server/brapi";
 import { fetchFxFromPtax, fetchMacroHistory, fetchMacroIndicators } from "@/lib/server/bcb";
 import { fetchTreasuryBonds, TESOURO_SOURCE } from "@/lib/server/tesouro";
+import { fetchNews } from "@/lib/server/news";
 import { errorMessage, isTransientError } from "@/lib/server/http";
 import { checkEstimatedQuota, WORLD_REFRESH_SECONDS } from "@/lib/server/quota";
 
@@ -194,4 +196,11 @@ export async function getTreasury(): Promise<TreasuryResponse> {
     cacheLife({ stale: RETRY_SECONDS, revalidate: 300, expire: WEEK });
     return { generatedAt, source: TESOURO_SOURCE, ok: false, error: errorMessage(err) };
   }
+}
+
+/** Manchetes dos feeds RSS: renovadas a cada 5 minutos. */
+export async function getNews(): Promise<NewsResponse> {
+  "use cache";
+  cacheLife({ stale: 300, revalidate: 300, expire: WEEK });
+  return { generatedAt: new Date().toISOString(), ...(await fetchNews()) };
 }
