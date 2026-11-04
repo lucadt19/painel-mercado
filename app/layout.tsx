@@ -49,8 +49,17 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body className="min-h-dvh">
         <AutoRefreshProvider delayMinutes={Math.round(serverEnv.quotesRefreshSeconds / 60)}>
+          {/* Atalho de teclado: aparece só ao receber foco (Tab logo ao abrir a página). */}
+          <a
+            href="#conteudo"
+            className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-md focus:bg-surface focus:px-3 focus:py-2 focus:text-sm focus:text-accent"
+          >
+            Pular para o conteúdo
+          </a>
           <SiteHeader />
-          <main className="mx-auto max-w-6xl px-4 pt-8 pb-24 md:pb-12">{children}</main>
+          <main id="conteudo" tabIndex={-1} className="mx-auto max-w-6xl px-4 pt-8 pb-24 outline-none md:pb-12">
+            {children}
+          </main>
           <BottomNav />
         </AutoRefreshProvider>
       </body>

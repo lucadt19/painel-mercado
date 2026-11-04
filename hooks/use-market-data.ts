@@ -137,11 +137,29 @@ export function useMarketList() {
   });
 }
 
+/**
+ * A rota do ativo responde 404 (ticker inexistente), 429 (muitas consultas) e
+ * 503 (lista de ativos indisponível) com uma mensagem em JSON; mostramos essa
+ * mensagem em vez de um erro genérico.
+ */
+async function getAssetJson(url: string): Promise<AssetResponse> {
+  const res = await fetch(url);
+  if (res.ok || [404, 429, 503].includes(res.status)) return res.json() as Promise<AssetResponse>;
+  throw new Error(`Erro ${res.status} ao buscar ${url}`);
+}
+
 /** Página de um ativo: atualiza a cada 30 min com o pregão aberto. */
 export function useAsset(ticker: string) {
   const { pollQuotes, pollWorld } = useAutoRefresh();
-  return useSWR<AssetResponse>(`/api/asset/${encodeURIComponent(ticker)}`, getJson, {
-    refreshInterval: pollQuotes || pollWorld ? 1800 * 1000 : 0,
+  return useSWR<AssetResponse>(`/api/asset/${encodeURIComponent(ticker)}`, getAssetJson, {
+    // Com erro passageiro (ex.: limite por minuto da brapi), tenta de novo em
+    // 2 min; o servidor responde do cache até a nova tentativa dele (5 min).
+    refreshInterval: (latest) =>
+      latest && !latest.ok && !/não encontrado/i.test(latest.error)
+        ? 120 * 1000
+        : pollQuotes || pollWorld
+          ? 1800 * 1000
+          : 0,
   });
 }
 

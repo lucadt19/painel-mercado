@@ -103,7 +103,7 @@ export function AcoesView() {
       <AssetSearch />
 
       <div role="tablist" aria-label="Mercado" className="flex gap-1 border-b border-border">
-        {TABS.map((t) => (
+        {TABS.map((t, i) => (
           <button
             key={t.id}
             id={`tab-${t.id}`}
@@ -111,7 +111,16 @@ export function AcoesView() {
             role="tab"
             aria-selected={tab === t.id}
             aria-controls={`painel-${t.id}`}
+            // Padrão de abas: Tab entra na aba ativa; setas trocam de aba.
+            tabIndex={tab === t.id ? 0 : -1}
             onClick={() => setTab(t.id)}
+            onKeyDown={(e) => {
+              if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+              e.preventDefault();
+              const next = TABS[(i + (e.key === "ArrowRight" ? 1 : TABS.length - 1)) % TABS.length];
+              setTab(next.id);
+              document.getElementById(`tab-${next.id}`)?.focus();
+            }}
             className={cn(
               "-mb-px border-b-2 px-3 py-2 text-sm transition-colors",
               tab === t.id
@@ -124,7 +133,7 @@ export function AcoesView() {
         ))}
       </div>
 
-      <div id={`painel-${tab}`} role="tabpanel" aria-labelledby={`tab-${tab}`}>
+      <div id={`painel-${tab}`} role="tabpanel" aria-labelledby={`tab-${tab}`} tabIndex={0}>
         {tab === "brasil" ? <BrasilTab /> : <MundoTab />}
       </div>
     </div>

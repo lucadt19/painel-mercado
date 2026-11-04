@@ -13,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Change } from "@/components/change";
 import { UpdatedAt } from "@/components/updated-at";
 import { PriceChart } from "@/components/asset/price-chart";
+import { Segmented } from "@/components/ui/segmented";
 
 // ---------- Períodos do gráfico ----------
 
@@ -266,43 +267,39 @@ export function AssetView({ ticker }: { ticker: string }) {
 
       <section>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <div role="radiogroup" aria-label="Período do gráfico" className="flex rounded-md border border-border p-0.5">
-            {PERIODS.map((p) => {
+          <Segmented
+            label="Período do gráfico"
+            value={periodId}
+            onChange={setPeriodId}
+            options={PERIODS.map((p) => {
               const intraday = p.id === "1D";
               const tooLong = !intraday && periodDays(p) > availableDays;
-              const disabled = intraday || tooLong;
-              return (
-                <button
-                  key={p.id}
-                  type="button"
-                  role="radio"
-                  aria-checked={periodId === p.id}
-                  disabled={disabled}
-                  title={
-                    intraday
-                      ? "Gráfico intradiário requer o plano Startup da brapi"
-                      : tooLong
-                        ? "Período não disponível no plano atual da brapi (Startup: 1 ano; Pro: 5 anos ou mais)"
-                        : undefined
-                  }
-                  onClick={() => setPeriodId(p.id)}
-                  className={cn(
-                    "rounded px-2.5 py-1 text-xs tabular-nums transition-colors",
-                    periodId === p.id ? "bg-accent-soft font-medium text-accent" : "text-muted hover:text-text",
-                    disabled && "cursor-not-allowed opacity-40 hover:text-muted",
-                  )}
-                >
-                  {p.label}
-                </button>
-              );
+              return {
+                value: p.id,
+                label: p.label,
+                disabled: intraday || tooLong,
+                title: intraday
+                  ? "Gráfico intradiário requer o plano Startup da brapi"
+                  : tooLong
+                    ? "Período não disponível no plano atual da brapi (Startup: 1 ano; Pro: 5 anos ou mais)"
+                    : undefined,
+              };
             })}
-          </div>
+          />
           <div className="text-xs text-muted">
             Variação em {period.label}: <Change value={periodChange} />
           </div>
         </div>
         <Card className="p-2">
-          <PriceChart points={points} currency={q.currency} />
+          <PriceChart
+            points={points}
+            currency={q.currency}
+            description={
+              points.length >= 2
+                ? `Preço de ${ticker} em ${period.label}: de ${formatMoney(points[0].close, q.currency)} em ${formatDate(points[0].date)} a ${formatMoney(points[points.length - 1].close, q.currency)} em ${formatDate(points[points.length - 1].date)}`
+                : `Preço de ${ticker}: sem dados suficientes para o gráfico`
+            }
+          />
         </Card>
         <p className="mt-2 text-xs text-muted">Fechamentos diários · fonte: brapi</p>
       </section>

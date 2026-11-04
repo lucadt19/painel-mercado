@@ -170,5 +170,23 @@ export function SeriesChart({
     chart.timeScale().fitContent();
   }, [series]);
 
-  return <div ref={containerRef} className={cn("h-60 w-full md:h-72", className)} />;
+  // Leitores de tela não enxergam o canvas: descrevemos início e fim de cada série.
+  const description = series
+    .filter((s) => s.points.length)
+    .map((s) => {
+      const a = s.points[0];
+      const b = s.points[s.points.length - 1];
+      const d = (x: string) => `${x.slice(5, 7)}/${x.slice(0, 4)}`;
+      return `${s.label}: de ${formatValue(a.value)} (${d(a.date)}) a ${formatValue(b.value)} (${d(b.date)})`;
+    })
+    .join("; ");
+
+  return (
+    <div
+      ref={containerRef}
+      role="img"
+      aria-label={description || "Gráfico sem dados"}
+      className={cn("h-60 w-full md:h-72", className)}
+    />
+  );
 }

@@ -34,9 +34,12 @@ const toTime = (day: string) => (Date.parse(`${day}T12:00:00Z`) / 1000) as UTCTi
 export function PriceChart({
   points,
   currency,
+  description,
 }: {
   points: { date: string; close: number }[];
   currency: string;
+  /** Resumo em texto para leitores de tela (o gráfico é um canvas). */
+  description: string;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
@@ -110,5 +113,5 @@ export function PriceChart({
     chart.timeScale().fitContent();
   }, [points]);
 
-  return <div ref={containerRef} className="h-64 w-full md:h-80" />;
+  return <div ref={containerRef} role="img" aria-label={description} className="h-64 w-full md:h-80" />;
 }

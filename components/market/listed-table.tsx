@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { Card, SectionTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Change } from "@/components/change";
+import { Segmented } from "@/components/ui/segmented";
 
 type SortKey = "marketCap" | "volume" | "up" | "down";
 
@@ -36,7 +37,7 @@ function sortAssets(list: ListedAsset[], key: SortKey) {
 }
 
 const selectCls =
-  "rounded-md border border-border bg-surface px-2 py-1.5 text-xs text-text hover:bg-surface-hover";
+  "rounded-md border border-border-strong bg-surface px-2 py-1.5 text-xs text-text hover:bg-surface-hover";
 
 /**
  * Tabela da lista completa da B3 (aba Brasil e BDRs): filtro por tipo e
@@ -96,27 +97,16 @@ export function ListedTable({
 
       <div className="mb-3 flex flex-wrap items-center gap-2">
         {kinds.length > 1 && (
-          <div role="radiogroup" aria-label="Tipo de ativo" className="flex rounded-md border border-border p-0.5">
-            {kinds.map((k) => (
-              <button
-                key={k.kind}
-                type="button"
-                role="radio"
-                aria-checked={kind === k.kind}
-                onClick={() => {
-                  setKind(k.kind);
-                  setSector("");
-                  resetPaging();
-                }}
-                className={cn(
-                  "rounded px-2.5 py-1 text-xs transition-colors",
-                  kind === k.kind ? "bg-accent-soft font-medium text-accent" : "text-muted hover:text-text",
-                )}
-              >
-                {k.label}
-              </button>
-            ))}
-          </div>
+          <Segmented
+            label="Tipo de ativo"
+            value={kind}
+            onChange={(k) => {
+              setKind(k);
+              setSector("");
+              resetPaging();
+            }}
+            options={kinds.map((k) => ({ value: k.kind, label: k.label }))}
+          />
         )}
         {sectors.length > 1 && (
           <select

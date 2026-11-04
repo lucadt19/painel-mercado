@@ -4,10 +4,10 @@ import { useMemo, useState } from "react";
 import { useMacro, useMacroHistory } from "@/hooks/use-market-data";
 import { formatMacroDate, formatNumber } from "@/lib/format";
 import type { MacroIndicator, MacroHistoryResponse, SeriesPoint } from "@/lib/types";
-import { cn } from "@/lib/utils";
 import { Card, SectionTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RateCard } from "@/components/overview/fixed-income-cards";
+import { Segmented } from "@/components/ui/segmented";
 import { ChartLegend, SeriesChart, type ChartSeries } from "@/components/charts/series-chart";
 
 const IDS: MacroIndicator["id"][] = ["selicMeta", "cdi", "ipcaMensal", "ipca12m"];
@@ -115,23 +115,12 @@ export function MacroSection() {
 
       <div className="flex items-center justify-between gap-3">
         <h3 className="text-xs text-muted">Histórico mensal</h3>
-        <div role="radiogroup" aria-label="Período do histórico" className="flex rounded-md border border-border p-0.5">
-          {PERIODS.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              role="radio"
-              aria-checked={periodId === p.id}
-              onClick={() => setPeriodId(p.id)}
-              className={cn(
-                "rounded px-2.5 py-1 text-xs transition-colors",
-                periodId === p.id ? "bg-accent-soft font-medium text-accent" : "text-muted hover:text-text",
-              )}
-            >
-              {p.id}
-            </button>
-          ))}
-        </div>
+        <Segmented
+          label="Período do histórico"
+          value={periodId}
+          onChange={setPeriodId}
+          options={PERIODS.map((p) => ({ value: p.id, label: p.id }))}
+        />
       </div>
 
       <div className="grid gap-3 lg:grid-cols-2">

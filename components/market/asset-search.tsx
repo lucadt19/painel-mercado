@@ -60,13 +60,13 @@ export function AssetSearch() {
       <label htmlFor={`${listId}-input`} className="sr-only">
         Buscar ativo
       </label>
-      <div className="flex items-center gap-2 rounded-card border border-border bg-surface px-3 focus-within:border-accent">
+      <div className="flex items-center gap-2 rounded-card border border-border-strong bg-surface px-3 focus-within:border-accent">
         <Search aria-hidden className="size-4 text-muted" strokeWidth={1.75} />
         <input
           id={`${listId}-input`}
           type="search"
           autoComplete="off"
-          placeholder="Buscar por ticker ou nome (ex.: PETR4, Itaú, Apple, BOVA11)"
+          placeholder="Buscar ticker ou nome (ex.: PETR4, Itaú)"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => {

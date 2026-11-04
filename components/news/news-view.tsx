@@ -4,15 +4,15 @@ import { useMemo, useState } from "react";
 import { newsSources, THEME_LABEL, type NewsTheme } from "@/config/news";
 import { useNews } from "@/hooks/use-market-data";
 import { formatUpdatedAt } from "@/lib/format";
-import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { NewsList } from "@/components/news/news-list";
+import { Segmented } from "@/components/ui/segmented";
 
 const PAGE = 30;
 const THEMES: ("todos" | NewsTheme)[] = ["todos", "mercado", "economia", "empresas"];
 
 const selectCls =
-  "rounded-md border border-border bg-surface px-2 py-1.5 text-xs text-text hover:bg-surface-hover";
+  "rounded-md border border-border-strong bg-surface px-2 py-1.5 text-xs text-text hover:bg-surface-hover";
 
 export function NewsView() {
   const { data, error } = useNews();
@@ -32,26 +32,15 @@ export function NewsView() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2">
-        <div role="radiogroup" aria-label="Tema" className="flex rounded-md border border-border p-0.5">
-          {THEMES.map((t) => (
-            <button
-              key={t}
-              type="button"
-              role="radio"
-              aria-checked={theme === t}
-              onClick={() => {
-                setTheme(t);
-                setShown(PAGE);
-              }}
-              className={cn(
-                "rounded px-2.5 py-1 text-xs transition-colors",
-                theme === t ? "bg-accent-soft font-medium text-accent" : "text-muted hover:text-text",
-              )}
-            >
-              {t === "todos" ? "Todos" : THEME_LABEL[t]}
-            </button>
-          ))}
-        </div>
+        <Segmented
+          label="Tema"
+          value={theme}
+          onChange={(t) => {
+            setTheme(t);
+            setShown(PAGE);
+          }}
+          options={THEMES.map((t) => ({ value: t, label: t === "todos" ? "Todos" : THEME_LABEL[t] }))}
+        />
         <select
           aria-label="Veículo"
           value={source}
