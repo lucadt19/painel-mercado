@@ -24,6 +24,32 @@ export const shortNames: Record<string, string> = {
   HASH11: "ETF Cripto",
 };
 
+/**
+ * Código CVM de cada empresa, para o selo de "resultado divulgado" ao lado do
+ * ticker. Para acompanhar outra empresa, acrescente aqui (o código aparece em
+ * dados.cvm.gov.br > Cias Abertas > Cadastro, com zeros à esquerda: 6 dígitos).
+ */
+export const cvmCodes: Record<string, string> = {
+  PETR4: "009512", // Petrobras
+  VALE3: "004170", // Vale
+  ITUB4: "019348", // Itaú Unibanco
+  WEGE3: "005410", // WEG
+  BBAS3: "001023", // Banco do Brasil
+};
+
+/**
+ * Nomes como aparecem nas manchetes, para achar a notícia do resultado mesmo
+ * sem o ticker (ex.: "Itaú lucra R$ 12 bi no 3T26"). Com o nome, a manchete
+ * precisa citar o trimestre ("3T26"), para evitar falso alarme.
+ */
+export const companyAliases: Record<string, string[]> = {
+  PETR4: ["Petrobras"],
+  VALE3: ["Vale"],
+  ITUB4: ["Itaú", "Itau"],
+  WEGE3: ["WEG"],
+  BBAS3: ["Banco do Brasil"], // não usar "BB": casaria com BB Seguridade (outra empresa)
+};
+
 /** ETFs da seção "ETFs acompanhados" da página Ações & ETFs. */
 export const trackedEtfs = ["BOVA11", "IVVB11", "SMAL11", "HASH11"];
 

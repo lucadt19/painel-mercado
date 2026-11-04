@@ -12,6 +12,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Change } from "@/components/change";
 import { Sparkline } from "@/components/sparkline";
 import { UpdatedAt } from "@/components/updated-at";
+import { TickerLogo } from "@/components/ticker-logo";
+import { EarningsBadge } from "@/components/earnings-badge";
 
 const th = "px-3 py-2 text-xs font-medium text-muted";
 const td = "px-3 py-2.5";
@@ -65,10 +67,18 @@ export function QuoteTable({
               return (
                 <tr key={symbol} className="transition-colors hover:bg-surface-hover">
                   <td className={cn(td, "text-left")}>
-                    <Link href={`/acoes/${encodeURIComponent(symbol)}`} className="font-medium hover:text-accent">
-                      {symbol}
-                    </Link>
-                    <div className="max-w-[12rem] truncate text-xs text-muted">{name}</div>
+                    <div className="flex items-center gap-2.5">
+                      <TickerLogo symbol={symbol} />
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                          <Link href={`/acoes/${encodeURIComponent(symbol)}`} className="font-medium hover:text-accent">
+                            {symbol}
+                          </Link>
+                          <EarningsBadge symbol={symbol} />
+                        </div>
+                        <div className="max-w-[12rem] truncate text-xs text-muted">{name}</div>
+                      </div>
+                    </div>
                   </td>
 
                   {!items ? (

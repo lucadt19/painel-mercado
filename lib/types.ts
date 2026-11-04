@@ -184,6 +184,12 @@ export type NewsItem = {
   /** Horário de publicação informado pelo veículo (ISO). */
   publishedAt: string;
   theme: "mercado" | "economia" | "empresas";
+  /** Foto fornecida pelo próprio feed (hospedada pelo veículo), ou null. */
+  image: string | null;
+  /** Quantos veículos publicaram sobre o mesmo assunto (inclui este). */
+  coverage: number;
+  /** Relevância: cobertura entre veículos com desconto pela idade. */
+  score: number;
 };
 
 export type NewsResponse = {
@@ -196,6 +202,8 @@ export type NewsResponse = {
 // ---------- Tesouro Direto (Tesouro Transparente) ----------
 
 export type TreasuryBond = {
+  /** Identificador estável (título + vencimento), usado no histórico. */
+  id: string;
   title: string;
   indexer: "Selic" | "Prefixado" | "IPCA" | "IGP-M";
   /** Vencimento (AAAA-MM-DD). */
@@ -207,6 +215,47 @@ export type TreasuryBond = {
   sellRate: number | null;
   sellPrice: number | null;
 };
+
+// ---------- Resultados trimestrais (CVM + manchetes) ----------
+
+export type EarningsRelease = {
+  /** Ex.: "3T26". */
+  quarter: string;
+  /** Ex.: "3º trimestre de 2026" ou "resultado anual de 2025". */
+  quarterLabel: string;
+  /** Dia da divulgação (AAAA-MM-DD). */
+  date: string;
+  /** "cvm": entrega oficial do ITR/DFP; "news": manchete do dia (antes de a CVM atualizar). */
+  source: "cvm" | "news";
+  /** Veículo da manchete, quando source = "news". */
+  sourceName?: string;
+  /** Link da manchete, quando source = "news". */
+  link?: string;
+};
+
+export type EarningsResponse = {
+  generatedAt: string;
+  /** Por ticker, só os que divulgaram resultado nos últimos dias. */
+  releases: Record<string, EarningsRelease>;
+  /** Até quando os arquivos da CVM estão atualizados (última entrega no arquivo). */
+  cvmUpdatedThrough: string | null;
+};
+
+/** Histórico diário de um título (desde que começou a ser negociado). */
+export type TreasuryHistory = {
+  id: string;
+  title: string;
+  maturity: string;
+  /** Data mais recente do arquivo oficial (AAAA-MM-DD). */
+  referenceDate: string;
+  /** Um ponto por dia útil; taxas em % a.a. (null = sem taxa nesse dia). */
+  points: { date: string; buyRate: number | null; sellRate: number | null }[];
+};
+
+export type TreasuryHistoryResponse = {
+  generatedAt: string;
+  source: string;
+} & Result<{ history: TreasuryHistory }>;
 
 export type TreasuryResponse = {
   generatedAt: string;

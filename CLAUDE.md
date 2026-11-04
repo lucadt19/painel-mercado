@@ -44,10 +44,13 @@
 - **Tesouro Direto:** tabela com os títulos ofertados (título, indexador, vencimento, taxa de compra e preço unitário).
 - **Curva de juros:** gráfico da curva prefixada (nominal) e da curva IPCA+ (real) por vencimento, com a inflação implícita calculada a partir das duas.
 - Nota explicativa curta sobre como ler as taxas. No Tesouro Selic, a taxa é um spread sobre a Selic; no Prefixado, é nominal; no IPCA+, é real.
+- **Histórico das taxas** de cada título do Tesouro, comparado com a taxa de hoje.
+- **Comparador** (`/renda-fixa/comparador`, aba dentro da Renda Fixa): dois investimentos lado a lado, com IR, isenções e custódia, mostrando a rentabilidade líquida ano a ano.
 
 ### 2.4 Notícias (`/noticias`)
 - Lista de manchetes agregadas de feeds RSS de veículos de negócios e economia.
-- Cada item mostra **apenas** título, veículo, horário e link para a matéria original. Não reproduzir o texto das matérias.
+- Cada item mostra **apenas** título, foto (a que o próprio feed fornece, hospedada pelo veículo), veículo, horário e link para a matéria original. Não reproduzir o texto das matérias nem abrir as páginas delas para extrair conteúdo.
+- A notícia mais relevante aparece em destaque, grande, com as demais em cards menores.
 - Filtros simples por fonte e por tema (Mercado, Economia, Empresas).
 
 ---
@@ -247,4 +250,10 @@ _(Adicionar aqui, com data, cada decisão tomada durante o projeto.)_
   - Proteção da cota: `/api/asset/[ticker]` só chama a brapi para tickers configurados ou presentes na lista da B3 (lida da própria rota `/api/market-list`, em cache); sem a lista, responde 503 em vez de arriscar. `proxy.ts` limita a 30 consultas de ativo por minuto por IP (memória local, por instância).
   - Acessibilidade: contraste medido (WCAG AA) nos dois temas; verde/vermelho do tema claro escurecidos (#187a4f, #b83c35); token `--border-strong` (≥ 3:1) nos contornos de controles. Componente `Segmented` (radio group com setas) para todos os seletores; abas Brasil/Mundo com setas; link "Pular para o conteúdo"; gráficos com descrição em texto (`role="img"`).
   - Acabamento: `app/icon.svg`, ícones PNG gerados com `ImageResponse` (iPhone e Android), `manifest.ts` para "Adicionar à tela de início", `robots.ts` bloqueando tudo, páginas 404 e de erro. Nome do site continua "Painel" (`config/site.ts`).
+- 04/11/2026: logos das empresas ao lado dos tickers (tabelas, busca, página do ativo), de `icons.brapi.dev`; sem logo, mostra as iniciais. Fundo branco fixo (`--logo-bg`) para logos escuros não sumirem no tema escuro.
+- 04/11/2026: notícias com foto e destaque, a pedido. Foto só do que o feed fornece (`media:content`, `mediaurl` ou a primeira `<img>` do conteúdo que não esteja num link para outra matéria); Folha e Money Times não trazem foto (bloco neutro com o nome do veículo). Destaque = assunto publicado por mais veículos (manchetes com palavras-chave em comum, até 12 h de diferença), com desconto pela idade, e que tenha foto.
+- 04/11/2026: depois de uma falha passageira, as telas consultam de novo em 2,5 min (o servidor responde do cache até tentar a fonte de novo, em 5 min).
+- 04/11/2026: histórico das taxas do Tesouro na Renda Fixa, a pedido: do mesmo CSV oficial (diário desde 2002), por título ainda negociado, via `/api/treasury-history/[id]` (cache de 6 h; a primeira leitura do dia leva ~15 s). Compara a taxa de hoje com média, mínima, máxima e percentil do período (1A/2A/5A/Tudo); clicar num título da tabela abre o histórico. CDB ficou de fora: não há fonte oficial atual e gratuita (a série SGS 28663, taxa média de CDB pós, para em jan/2024).
+- 04/11/2026: selo "Resultado 3T26" ao lado do ticker por 7 dias após a divulgação, a pedido, só para empresas com código CVM em `cvmCodes` (`config/watchlist.ts`). Fontes: data de entrega do ITR/DFP nos dados abertos da CVM (oficial, mas atualizada só 1 vez por semana; zip lido com `lib/server/unzip.ts`, sem dependência) + manchetes do dia (ticker + palavra de resultado; ou nome em `companyAliases` + trimestre explícito, sem ticker de outra empresa, e trimestre plausível para a data). Com os dois para o mesmo trimestre, vale a data da CVM.
+- 04/11/2026: comparador de renda fixa, a pedido, como aba da Renda Fixa. Regras em `config/fixed-income.ts` (IR regressivo 22,5/20/17,5/15%; LCI, LCA, CRI, CRA e debêntures incentivadas isentos; custódia B3 0,20% a.a. no Tesouro, Tesouro Selic isento até R$ 10 mil); contas puras em `lib/fixed-income-calc.ts`, testadas à parte. Premissas: CDI/IPCA/Selic constantes (preenchidos do BC, editáveis), % do CDI sobre o CDI diário, Selic efetiva = meta − 0,10, sem IOF, sem cupom. Poupança ficou para depois. Regras conferidas em 04/11/2026: a MP 1.303 caducou e nada mudou na tributação.
 - 03/11/2026: horários e feriados da B3 ficam em `config/b3-calendario.ts`, a partir dos comunicados oficiais da B3; atualizar a cada ano e a cada mudança de horário (horário de verão dos EUA).

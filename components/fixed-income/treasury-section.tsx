@@ -9,6 +9,9 @@ import { cn } from "@/lib/utils";
 import { Card, SectionTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChartLegend, SeriesChart, type ChartSeries } from "@/components/charts/series-chart";
+import { TreasuryHistorySection } from "@/components/fixed-income/treasury-history";
+import { treasuryReference } from "@/config/watchlist";
+import { bondId } from "@/lib/treasury-id";
 
 /** Famílias principais, abertas por padrão, nesta ordem. */
 const MAIN = [
@@ -32,15 +35,20 @@ function rateLabel(b: TreasuryBond, rate: number | null) {
 const th = "px-3 py-2 text-xs font-medium text-muted";
 const td = "px-3 py-2";
 
-function BondRows({ bonds }: { bonds: TreasuryBond[] }) {
+function BondRows({ bonds, onSelect }: { bonds: TreasuryBond[]; onSelect: (id: string) => void }) {
   return (
     <>
       {bonds.map((b) => (
-        <tr key={`${b.title}-${b.maturity}`} className="transition-colors hover:bg-surface-hover">
+        <tr key={b.id} className="transition-colors hover:bg-surface-hover">
           <td className={td}>
-            <div className="font-medium">
+            <button
+              type="button"
+              onClick={() => onSelect(b.id)}
+              title="Ver o histórico das taxas deste título"
+              className="text-left font-medium hover:text-accent hover:underline"
+            >
               {b.title.replace("Tesouro ", "")} {b.maturity.slice(0, 4)}
-            </div>
+            </button>
             <div className="text-xs text-muted md:hidden">venc. {formatDate(b.maturity)}</div>
           </td>
           <td className={cn(td, "hidden text-right tabular-nums md:table-cell")}>{formatDate(b.maturity)}</td>
@@ -57,7 +65,15 @@ function BondRows({ bonds }: { bonds: TreasuryBond[] }) {
   );
 }
 
-function TreasuryTable({ bonds, referenceDate }: { bonds: TreasuryBond[]; referenceDate: string }) {
+function TreasuryTable({
+  bonds,
+  referenceDate,
+  onSelect,
+}: {
+  bonds: TreasuryBond[];
+  referenceDate: string;
+  onSelect: (id: string) => void;
+}) {
   const [showOthers, setShowOthers] = useState(false);
   const byTitle = useMemo(() => {
     const m = new Map<string, TreasuryBond[]>();
@@ -76,7 +92,7 @@ function TreasuryTable({ bonds, referenceDate }: { bonds: TreasuryBond[]; refere
           {title}
         </th>
       </tr>
-      <BondRows bonds={byTitle.get(title)!} />
+      <BondRows bonds={byTitle.get(title)!} onSelect={onSelect} />
     </tbody>
   );
 
@@ -147,8 +163,18 @@ function YieldCurve({ bonds, referenceDate }: { bonds: TreasuryBond[]; reference
   );
 }
 
+/** Título que abre no histórico: o mesmo de referência da Visão Geral. */
+const DEFAULT_BOND = bondId(treasuryReference.title, treasuryReference.maturity);
+
 export function TreasurySection() {
   const { data, error } = useTreasury();
+  const [selectedId, setSelectedId] = useState(DEFAULT_BOND);
+
+  // Clique num título da tabela: abre o histórico dele e rola até a seção.
+  const showHistory = (id: string) => {
+    setSelectedId(id);
+    document.getElementById("historico-tesouro")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   if (!data) {
     return error ? (
@@ -169,7 +195,12 @@ export function TreasurySection() {
   }
   return (
     <div className="flex flex-col gap-8">
-      <TreasuryTable bonds={data.bonds} referenceDate={data.referenceDate} />
+      <TreasuryTable bonds={data.bonds} referenceDate={data.referenceDate} onSelect={showHistory} />
+      <TreasuryHistorySection
+        bonds={data.bonds}
+        selectedId={data.bonds.some((b) => b.id === selectedId) ? selectedId : data.bonds[0].id}
+        onSelect={setSelectedId}
+      />
       <YieldCurve bonds={data.bonds} referenceDate={data.referenceDate} />
     </div>
   );

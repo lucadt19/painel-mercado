@@ -14,6 +14,8 @@ import { Change } from "@/components/change";
 import { UpdatedAt } from "@/components/updated-at";
 import { PriceChart } from "@/components/asset/price-chart";
 import { Segmented } from "@/components/ui/segmented";
+import { EarningsBadge } from "@/components/earnings-badge";
+import { TickerLogo } from "@/components/ticker-logo";
 
 // ---------- Períodos do gráfico ----------
 
@@ -250,8 +252,10 @@ export function AssetView({ ticker }: { ticker: string }) {
     <div className="flex flex-col gap-8">
       <div className="flex flex-col gap-2">
         <BackLink />
-        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <TickerLogo symbol={ticker} size={36} />
           <h1 className="text-xl font-semibold tracking-tight">{ticker}</h1>
+          <EarningsBadge symbol={ticker} />
           <span className="text-sm text-muted">{name}</span>
           {kindLabel && (
             <span className="rounded border border-border px-1.5 text-xs text-muted">{kindLabel}</span>

@@ -24,7 +24,7 @@ export function Headlines() {
         {!data && error ? (
           <p className="p-4 text-sm text-muted">Dados indisponíveis no momento</p>
         ) : (
-          <NewsList items={data?.items.slice(0, 5)} loading={!error} showTheme={false} />
+          <NewsList items={data?.items.slice(0, 5)} loading={!error} showTheme={false} withImages />
         )}
       </Card>
     </section>

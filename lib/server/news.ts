@@ -11,7 +11,9 @@ import type { NewsItem, NewsResponse } from "@/lib/types";
 import { errorMessage, fetchWithTimeout, SourceError } from "@/lib/server/http";
 
 const parser = new XMLParser({
-  ignoreAttributes: true,
+  // Atributos são necessários: a foto vem em <media:content url="...">.
+  ignoreAttributes: false,
+  attributeNamePrefix: "@_",
   htmlEntities: true,
   // Sempre lista, mesmo com um item ou uma categoria só.
   isArray: (name) => name === "item" || name === "category",
@@ -60,6 +62,49 @@ function parseDate(raw: string): string | null {
   return Number.isFinite(t) ? new Date(t).toISOString() : null;
 }
 
+/** Atributo de um nó (ex.: url de <media:content>). */
+function attr(node: unknown, name: string): string {
+  return node && typeof node === "object" ? text((node as Record<string, unknown>)[`@_${name}`]) : "";
+}
+
+const asList = (v: unknown): unknown[] => (Array.isArray(v) ? v : v ? [v] : []);
+/**
+ * Só https; decodifica &amp; (vem assim dentro do HTML do feed) e, nas imagens
+ * do WordPress/Jetpack (InfoMoney), pede até 1024 px em vez da miniatura de 300.
+ */
+const httpsOnly = (u: string) =>
+  /^https:\/\//.test(u)
+    ? u.replace(/&amp;/g, "&").replace(/([?&]fit=)\d+%2C\d+/, (_m, prefix: string) => `${prefix}1024%2C1024`)
+    : null;
+
+/**
+ * Foto da matéria, só do que o próprio feed fornece (nunca abrimos a página
+ * da matéria): <media:content>/<media:thumbnail>/<enclosure>, <mediaurl>
+ * (Exame) ou a primeira <img> do conteúdo que não esteja dentro de um link
+ * para OUTRA matéria (o InfoMoney mistura miniaturas de "leia também").
+ */
+function imageOf(it: Record<string, unknown>, link: string): string | null {
+  for (const key of ["media:content", "media:thumbnail", "enclosure"]) {
+    for (const n of asList(it[key])) {
+      const url = attr(n, "url");
+      const kind = attr(n, "type") || attr(n, "medium") || "image";
+      if (url && /image/i.test(kind) && httpsOnly(url)) return url;
+    }
+  }
+  const mediaUrl = httpsOnly(text(it.mediaurl));
+  if (mediaUrl) return mediaUrl;
+
+  const html = `${text(it["content:encoded"])} ${text(it.description)}`;
+  const tag = /<a\s[^>]*href=["']([^"']+)["'][^>]*>|<\/a>|<img\s[^>]*src=["']([^"']+)["']/gi;
+  let insideOtherLink = false;
+  for (let m = tag.exec(html); m; m = tag.exec(html)) {
+    if (m[1] !== undefined) insideOtherLink = m[1].split("?")[0] !== link.split("?")[0];
+    else if (m[0].startsWith("</a")) insideOtherLink = false;
+    else if (m[2] && !insideOtherLink && httpsOnly(m[2])) return m[2];
+  }
+  return null;
+}
+
 function classify(source: NewsSource, link: string, categories: string[]): NewsTheme | null {
   let path = "";
   try {
@@ -93,9 +138,53 @@ async function fetchSource(source: NewsSource): Promise<NewsItem[]> {
     const categories = (Array.isArray(it.category) ? it.category : []).map(text);
     const theme = classify(source, link, categories);
     if (!theme) continue;
-    out.push({ link, title, sourceId: source.id, sourceName: source.name, publishedAt, theme });
+    out.push({
+      link,
+      title,
+      sourceId: source.id,
+      sourceName: source.name,
+      publishedAt,
+      theme,
+      image: imageOf(it, link),
+      coverage: 1,
+      score: 0,
+    });
   }
   return out;
+}
+
+// ---------- Relevância ----------
+
+/** Palavras que não identificam o assunto (comparação sem acento). */
+const STOPWORDS = new Set(
+  "para sobre apos como mais pelo pela pelos pelas entre segundo deve pode podem nesta neste contra ainda seus suas esta este essa esse isso qual quais veja entenda hoje anos dias semana mes quer diz dizem fica ficam tera terao sera serao mesmo desde quando onde porque menos alta queda sobe sobem cai caem".split(" "),
+);
+
+const keywords = (title: string) =>
+  new Set(norm(title).split(/[^a-z0-9]+/).filter((w) => w.length >= 4 && !STOPWORDS.has(w)));
+
+/**
+ * O RSS não informa importância. Critério: o assunto coberto por mais
+ * veículos (manchetes com palavras-chave em comum, publicadas com até 12 h de
+ * diferença), com desconto pela idade. `coverage` = quantos veículos.
+ */
+function scoreRelevance(items: NewsItem[]) {
+  const now = Date.now();
+  const kws = items.map((i) => keywords(i.title));
+  const times = items.map((i) => Date.parse(i.publishedAt));
+  items.forEach((item, a) => {
+    const sources = new Set([item.sourceId]);
+    items.forEach((other, b) => {
+      if (a === b || sources.has(other.sourceId) || Math.abs(times[a] - times[b]) > 12 * 3600_000) return;
+      let shared = 0;
+      for (const w of kws[a]) if (kws[b].has(w)) shared++;
+      const union = kws[a].size + kws[b].size - shared;
+      if (shared >= 2 && shared / union >= 0.2) sources.add(other.sourceId);
+    });
+    const hoursAgo = (now - times[a]) / 3600_000;
+    item.coverage = sources.size;
+    item.score = Math.round((sources.size * 10 - hoursAgo) * 10) / 10;
+  });
 }
 
 /** Todos os veículos em paralelo; se um cair, só ele fica de fora. */
@@ -117,6 +206,7 @@ export async function fetchNews(): Promise<Omit<NewsResponse, "generatedAt">> {
     .filter((i) => (seen.has(i.link) ? false : (seen.add(i.link), true)))
     .sort((a, b) => b.publishedAt.localeCompare(a.publishedAt))
     .slice(0, MAX_ITEMS);
+  scoreRelevance(items);
 
   return { sources: results.map((r) => r.source), items };
 }

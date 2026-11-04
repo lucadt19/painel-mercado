@@ -5,6 +5,7 @@ import { THEME_LABEL } from "@/config/news";
 import type { NewsItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
+import { NewsImage } from "@/components/news/news-cards";
 
 /**
  * Lista de manchetes: só título (link para a matéria original), veículo,
@@ -14,11 +15,14 @@ export function NewsList({
   items,
   loading,
   showTheme = true,
+  withImages = false,
   className,
 }: {
   items: NewsItem[] | undefined;
   loading: boolean;
   showTheme?: boolean;
+  /** Miniatura da foto à esquerda de cada manchete. */
+  withImages?: boolean;
   className?: string;
 }) {
   if (!items) {
@@ -42,22 +46,25 @@ export function NewsList({
             href={n.link}
             target="_blank"
             rel="noopener noreferrer"
-            className="group flex flex-col gap-1 px-4 py-3 transition-colors hover:bg-surface-hover"
+            className="group flex items-start gap-3 px-4 py-3 transition-colors hover:bg-surface-hover"
           >
-            <span className="text-sm leading-snug group-hover:text-accent">{n.title}</span>
-            <span className="flex flex-wrap items-center gap-x-2 text-xs text-muted">
-              <span className="font-medium">{n.sourceName}</span>
-              <span aria-hidden>·</span>
-              <time dateTime={n.publishedAt} className="tabular-nums">
-                {formatUpdatedAt(n.publishedAt)}
-              </time>
-              {showTheme && (
-                <>
-                  <span aria-hidden>·</span>
-                  <span>{THEME_LABEL[n.theme]}</span>
-                </>
-              )}
-              <span className="sr-only">(abre o site do veículo em nova aba)</span>
+            {withImages && <NewsImage item={n} className="h-14 w-20 shrink-0 rounded-md text-[0.6rem]" />}
+            <span className="flex min-w-0 flex-col gap-1">
+              <span className="text-sm leading-snug group-hover:text-accent">{n.title}</span>
+              <span className="flex flex-wrap items-center gap-x-2 text-xs text-muted">
+                <span className="font-medium">{n.sourceName}</span>
+                <span aria-hidden>·</span>
+                <time dateTime={n.publishedAt} className="tabular-nums">
+                  {formatUpdatedAt(n.publishedAt)}
+                </time>
+                {showTheme && (
+                  <>
+                    <span aria-hidden>·</span>
+                    <span>{THEME_LABEL[n.theme]}</span>
+                  </>
+                )}
+                <span className="sr-only">(abre o site do veículo em nova aba)</span>
+              </span>
             </span>
           </a>
         </li>

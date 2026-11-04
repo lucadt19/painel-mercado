@@ -3,6 +3,7 @@ import { cacheLife } from "next/cache";
 import { fxPairs, indices, trackedEtfs, watchlistSymbols, worldStocks } from "@/config/watchlist";
 import type {
   AssetResponse,
+  EarningsResponse,
   FxItem,
   MacroHistoryResponse,
   MacroResponse,
@@ -10,6 +11,7 @@ import type {
   NewsResponse,
   QuoteItem,
   QuotesResponse,
+  TreasuryHistoryResponse,
   TreasuryResponse,
   WorldResponse,
 } from "@/lib/types";
@@ -22,8 +24,9 @@ import {
   PlanError,
 } from "@/lib/server/brapi";
 import { fetchFxFromPtax, fetchMacroHistory, fetchMacroIndicators } from "@/lib/server/bcb";
-import { fetchTreasuryBonds, TESOURO_SOURCE } from "@/lib/server/tesouro";
+import { fetchTreasuryAll, TESOURO_SOURCE } from "@/lib/server/tesouro";
 import { fetchNews } from "@/lib/server/news";
+import { buildEarnings, fetchCvmFilings } from "@/lib/server/earnings";
 import { errorMessage, isTransientError } from "@/lib/server/http";
 import { checkEstimatedQuota, WORLD_REFRESH_SECONDS } from "@/lib/server/quota";
 
@@ -184,12 +187,21 @@ export async function getMacroHistory(): Promise<MacroHistoryResponse> {
   return { generatedAt: new Date().toISOString(), source: "Banco Central do Brasil (SGS)", series };
 }
 
+/**
+ * Arquivo do Tesouro Transparente (~14 MB) lido UMA vez para tudo: tabela de
+ * títulos e histórico de cada um. Ele muda uma vez por dia útil.
+ */
+async function getTreasuryAll() {
+  "use cache";
+  cacheLife({ stale: 3600, revalidate: 3600, expire: WEEK });
+  return fetchTreasuryAll();
+}
+
 export async function getTreasury(): Promise<TreasuryResponse> {
   "use cache";
-  // O arquivo do Tesouro Transparente muda uma vez por dia útil.
   const generatedAt = new Date().toISOString();
   try {
-    const { referenceDate, bonds } = await fetchTreasuryBonds();
+    const { referenceDate, bonds } = await getTreasuryAll();
     cacheLife({ stale: 3600, revalidate: 3600, expire: WEEK });
     return { generatedAt, source: TESOURO_SOURCE, ok: true, referenceDate, bonds };
   } catch (err) {
@@ -203,4 +215,39 @@ export async function getNews(): Promise<NewsResponse> {
   "use cache";
   cacheLife({ stale: 300, revalidate: 300, expire: WEEK });
   return { generatedAt: new Date().toISOString(), ...(await fetchNews()) };
+}
+
+/** Histórico de um título (página Renda Fixa). */
+export async function getTreasuryHistory(id: string): Promise<TreasuryHistoryResponse> {
+  "use cache";
+  const generatedAt = new Date().toISOString();
+  try {
+    const history = (await getTreasuryAll()).histories[id];
+    cacheLife({ stale: 3600, revalidate: 3600, expire: WEEK });
+    if (!history) return { generatedAt, source: TESOURO_SOURCE, ok: false, error: "Título não encontrado." };
+    return { generatedAt, source: TESOURO_SOURCE, ok: true, history };
+  } catch (err) {
+    cacheLife({ stale: RETRY_SECONDS, revalidate: RETRY_SECONDS, expire: WEEK });
+    return { generatedAt, source: TESOURO_SOURCE, ok: false, error: errorMessage(err) };
+  }
+}
+
+/** Entregas de ITR/DFP na CVM (arquivos semanais): renovadas a cada 6 h. */
+async function getCvmFilings() {
+  "use cache";
+  cacheLife({ stale: 6 * 3600, revalidate: 6 * 3600, expire: WEEK });
+  return fetchCvmFilings();
+}
+
+/** Selos de "resultado divulgado": CVM + manchetes do dia; renovados a cada 5 min. */
+export async function getEarnings(): Promise<EarningsResponse> {
+  "use cache";
+  cacheLife({ stale: 300, revalidate: 300, expire: WEEK });
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date());
+  const [filings, news] = await Promise.all([
+    // CVM fora do ar: seguimos só com as manchetes.
+    getCvmFilings().catch(() => ({ filings: [], updatedThrough: null })),
+    getNews().then((n) => n.items).catch(() => []),
+  ]);
+  return { generatedAt: new Date().toISOString(), ...buildEarnings(filings, news, today) };
 }

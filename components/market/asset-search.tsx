@@ -8,6 +8,7 @@ import { worldStocks } from "@/config/watchlist";
 import { useMarketList } from "@/hooks/use-market-data";
 import type { ListedAsset } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { TickerLogo } from "@/components/ticker-logo";
 
 type Hit = { symbol: string; name: string; kind: string };
 
@@ -98,6 +99,7 @@ export function AssetSearch() {
                     i === 0 && "bg-surface-hover/50",
                   )}
                 >
+                  <TickerLogo symbol={h.symbol} size={24} />
                   <span className="w-20 shrink-0 font-medium">{h.symbol}</span>
                   <span className="flex-1 truncate text-xs text-muted">{h.name}</span>
                   <span className="shrink-0 rounded border border-border px-1.5 text-[0.7rem] text-muted">

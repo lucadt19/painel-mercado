@@ -4,6 +4,7 @@ import useSWR from "swr";
 import { useAutoRefresh } from "@/components/auto-refresh-provider";
 import type {
   AssetResponse,
+  EarningsResponse,
   MacroHistoryResponse,
   NewsResponse,
   FxItem,
@@ -12,6 +13,7 @@ import type {
   MacroResponse,
   QuoteItem,
   QuotesResponse,
+  TreasuryHistoryResponse,
   TreasuryResponse,
 } from "@/lib/types";
 
@@ -33,6 +35,16 @@ async function getJson<T>(url: string): Promise<T> {
   if (!res.ok) throw new Error(`Erro ${res.status} ao buscar ${url}`);
   return res.json() as Promise<T>;
 }
+
+/**
+ * Depois de uma falha, consultar de novo em 2,5 min (o servidor tenta a fonte
+ * de novo em 5 min e, até lá, responde do cache, sem gastar cota). Sem isso,
+ * a tela ficaria "indisponível" até o próximo intervalo normal (30 min).
+ */
+const RETRY_MS = 150 * 1000;
+
+/** Algum item falhou nesta rodada (mesmo que a tela mostre o valor anterior)? */
+const anyFailed = (items: { ok: boolean; stale?: unknown }[]) => items.some((i) => !i.ok || i.stale);
 
 // Último valor bom de cada ativo, para não apagar a tela quando a fonte falha.
 const lastGoodQuotes = new Map<string, QuoteItem>();
@@ -86,7 +98,11 @@ async function fetchQuotes(url: string): Promise<QuotesData> {
 export function useQuotes() {
   const { pollQuotes } = useAutoRefresh();
   return useSWR<QuotesData>("/api/quotes", fetchQuotes, {
-    refreshInterval: (latest) => (pollQuotes && latest ? latest.refreshSeconds * 1000 : 0),
+    refreshInterval: (latest) => {
+      if (!pollQuotes || !latest) return 0;
+      const failed = anyFailed([...latest.indices, ...latest.watchlist, ...latest.etfs, ...latest.fx]);
+      return failed ? RETRY_MS : latest.refreshSeconds * 1000;
+    },
   });
 }
 
@@ -113,7 +129,10 @@ async function fetchWorld(url: string): Promise<WorldData> {
 export function useWorld() {
   const { pollWorld } = useAutoRefresh();
   return useSWR<WorldData>("/api/world", fetchWorld, {
-    refreshInterval: (latest) => (pollWorld && latest ? latest.refreshSeconds * 1000 : 0),
+    refreshInterval: (latest) => {
+      if (!pollWorld || !latest) return 0;
+      return anyFailed(latest.items) ? RETRY_MS : latest.refreshSeconds * 1000;
+    },
   });
 }
 
@@ -131,7 +150,10 @@ async function fetchMarketList(url: string): Promise<MarketListResponse> {
 export function useMarketList() {
   const { pollQuotes } = useAutoRefresh();
   return useSWR<MarketListResponse>("/api/market-list", fetchMarketList, {
-    refreshInterval: (latest) => (pollQuotes && latest ? latest.refreshSeconds * 1000 : 0),
+    // Lista indisponível: tenta de novo logo, mesmo com o pregão fechado
+    // (sem ela a tabela da B3 e a busca ficam vazias).
+    refreshInterval: (latest) =>
+      latest && !latest.ok ? RETRY_MS : pollQuotes && latest ? latest.refreshSeconds * 1000 : 0,
     // A lista é grande; não precisa rebuscar a cada foco na aba.
     revalidateOnFocus: false,
   });
@@ -174,4 +196,21 @@ export function useMacroHistory() {
 /** Manchetes: a cada 5 minutos com a aba visível (independe do pregão). */
 export function useNews() {
   return useSWR<NewsResponse>("/api/news", getJson, { refreshInterval: 5 * 60 * 1000 });
+}
+
+/** Histórico diário de um título do Tesouro (o arquivo oficial muda 1 vez por dia útil). */
+export function useTreasuryHistory(id: string | null) {
+  return useSWR<TreasuryHistoryResponse>(
+    id ? `/api/treasury-history/${encodeURIComponent(id)}` : null,
+    getJson,
+    { refreshInterval: 6 * HOUR, revalidateOnFocus: false },
+  );
+}
+
+/** Selos de resultado divulgado: checa a cada 30 min com a aba visível. */
+export function useEarnings() {
+  return useSWR<EarningsResponse>("/api/earnings", getJson, {
+    refreshInterval: 30 * 60 * 1000,
+    revalidateOnFocus: false,
+  });
 }

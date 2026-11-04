@@ -5,10 +5,12 @@ import { newsSources, THEME_LABEL, type NewsTheme } from "@/config/news";
 import { useNews } from "@/hooks/use-market-data";
 import { formatUpdatedAt } from "@/lib/format";
 import { Card } from "@/components/ui/card";
-import { NewsList } from "@/components/news/news-list";
+import { FeaturedNews, NewsCard } from "@/components/news/news-cards";
+import { Skeleton } from "@/components/ui/skeleton";
+import type { NewsItem } from "@/lib/types";
 import { Segmented } from "@/components/ui/segmented";
 
-const PAGE = 30;
+const PAGE = 24;
 const THEMES: ("todos" | NewsTheme)[] = ["todos", "mercado", "economia", "empresas"];
 
 const selectCls =
@@ -28,6 +30,16 @@ export function NewsView() {
     [data, theme, source],
   );
   const failed = data?.sources.filter((s) => !s.ok) ?? [];
+
+  // Destaque: a mais relevante (assunto em mais veículos, mais recente) que tenha foto.
+  const featured = useMemo(
+    () =>
+      filtered
+        .filter((n) => n.image)
+        .reduce<NewsItem | undefined>((best, n) => (!best || n.score > best.score ? n : best), undefined),
+    [filtered],
+  );
+  const rest = useMemo(() => filtered.filter((n) => n !== featured), [filtered, featured]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -70,28 +82,47 @@ export function NewsView() {
         </p>
       )}
 
-      <Card className="overflow-hidden">
-        {!data && error ? (
-          <p className="p-6 text-center text-sm text-muted">Dados indisponíveis no momento</p>
-        ) : data && filtered.length === 0 ? (
-          <p className="p-6 text-center text-sm text-muted">Nenhuma manchete com esses filtros.</p>
+      {!data ? (
+        error ? (
+          <Card className="p-6 text-center text-sm text-muted">Dados indisponíveis no momento</Card>
         ) : (
-          <NewsList items={data ? filtered.slice(0, shown) : undefined} loading={!error} showTheme={theme === "todos"} />
-        )}
-      </Card>
+          <div className="flex flex-col gap-4" aria-busy="true">
+            <Skeleton className="aspect-[16/10] w-full rounded-card sm:aspect-[21/9]" />
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: 6 }, (_, i) => (
+                <Skeleton key={i} className="aspect-[4/3] rounded-card" />
+              ))}
+            </div>
+          </div>
+        )
+      ) : filtered.length === 0 ? (
+        <Card className="p-6 text-center text-sm text-muted">Nenhuma manchete com esses filtros.</Card>
+      ) : (
+        <>
+          {featured && <FeaturedNews item={featured} />}
+          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {rest.slice(0, shown).map((n) => (
+              <li key={n.link} className="flex">
+                <NewsCard item={n} />
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
 
-      {filtered.length > shown && (
+      {rest.length > shown && (
         <button
           type="button"
           onClick={() => setShown((n) => n + PAGE)}
           className="w-full rounded-md border border-border py-2 text-xs text-muted transition-colors hover:bg-surface-hover hover:text-text"
         >
-          Carregar mais ({filtered.length - shown} restantes)
+          Carregar mais ({rest.length - shown} restantes)
         </button>
       )}
 
       <p className="text-xs text-muted">
-        Só exibimos título, veículo e horário. O texto completo fica no site de cada veículo.
+        Exibimos só a manchete, a foto fornecida no feed, o veículo e o horário. O texto completo fica no
+        site de cada veículo. Destaque: o assunto publicado por mais veículos nas últimas horas.
       </p>
     </div>
   );

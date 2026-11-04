@@ -9,6 +9,8 @@ import { Card, SectionTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Change } from "@/components/change";
 import { Segmented } from "@/components/ui/segmented";
+import { TickerLogo } from "@/components/ticker-logo";
+import { EarningsBadge } from "@/components/earnings-badge";
 
 type SortKey = "marketCap" | "volume" | "up" | "down";
 
@@ -180,10 +182,18 @@ export function ListedTable({
               rows.slice(0, shown).map((a) => (
                 <tr key={a.symbol} className="transition-colors hover:bg-surface-hover">
                   <td className={td}>
-                    <Link href={`/acoes/${encodeURIComponent(a.symbol)}`} className="font-medium hover:text-accent">
-                      {a.symbol}
-                    </Link>
-                    <div className="max-w-[14rem] truncate text-xs text-muted">{names[a.symbol] ?? a.name}</div>
+                    <div className="flex items-center gap-2.5">
+                      <TickerLogo symbol={a.symbol} />
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                          <Link href={`/acoes/${encodeURIComponent(a.symbol)}`} className="font-medium hover:text-accent">
+                            {a.symbol}
+                          </Link>
+                          <EarningsBadge symbol={a.symbol} />
+                        </div>
+                        <div className="max-w-[14rem] truncate text-xs text-muted">{names[a.symbol] ?? a.name}</div>
+                      </div>
+                    </div>
                   </td>
                   <td className={cn(td, "text-right tabular-nums whitespace-nowrap")}>
                     {a.price === null ? "—" : formatBRL(a.price)}

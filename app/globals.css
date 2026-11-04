@@ -16,6 +16,11 @@
   --border: #232830;
   /* Contorno de controles (busca, seletores): contraste ≥ 3:1 (WCAG 1.4.11). */
   --border-strong: #5c6470;
+  /* Fundo dos logos das empresas: claro nos dois temas (logos escuros sumiriam). */
+  --logo-bg: #ffffff;
+  /* Texto sobre foto (destaque das notícias) e a película escura que o torna legível. */
+  --on-image: #ffffff;
+  --scrim: #000000b3;
   --text: #e6e8eb;
   --text-muted: #8b93a1;
   --accent: #8b93f5;
@@ -33,6 +38,9 @@
   --surface-hover: #eff1f4;
   --border: #e1e4e9;
   --border-strong: #858c99;
+  --logo-bg: #ffffff;
+  --on-image: #ffffff;
+  --scrim: #000000b3;
   --text: #14171c;
   --text-muted: #5c6470;
   --accent: #4f5ad6;
@@ -51,6 +59,9 @@
   --color-surface-hover: var(--surface-hover);
   --color-border: var(--border);
   --color-border-strong: var(--border-strong);
+  --color-logo-bg: var(--logo-bg);
+  --color-on-image: var(--on-image);
+  --color-scrim: var(--scrim);
   --color-text: var(--text);
   --color-muted: var(--text-muted);
   --color-accent: var(--accent);

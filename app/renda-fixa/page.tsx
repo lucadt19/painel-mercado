@@ -3,6 +3,7 @@ import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
 import { MacroSection } from "@/components/fixed-income/macro-section";
 import { TreasurySection } from "@/components/fixed-income/treasury-section";
+import { RfTabs } from "@/components/fixed-income/rf-tabs";
 
 export const metadata: Metadata = { title: "Renda Fixa" };
 
@@ -33,6 +34,7 @@ export default function RendaFixaPage() {
   return (
     <>
       <PageHeader title="Renda Fixa" />
+      <RfTabs active="mercado" />
       <div className="flex flex-col gap-10">
         <MacroSection />
         <ReadingNote />
