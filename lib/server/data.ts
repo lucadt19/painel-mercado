@@ -38,6 +38,7 @@ import { checkEstimatedQuota, WORLD_REFRESH_SECONDS } from "@/lib/server/quota";
  */
 
 const WEEK = 7 * 24 * 3600;
+const BUILD_WAIT_MSG = "Aguardando a primeira consulta após a publicação.";
 /** Nova tentativa mais cedo quando alguma fonte falhou. */
 const RETRY_SECONDS = 300;
 
@@ -111,14 +112,25 @@ export async function getQuotes(): Promise<QuotesResponse> {
   const indexSymbols = indices.map((i) => i.symbol);
   const assetSymbols = [...new Set([...watchlistSymbols, ...trackedEtfs])];
 
+  // Na publicação (build), o Next monta as rotas mais de uma vez e em processos
+  // separados: as chamadas à brapi passam das 20/min. Então o build não consulta
+  // a brapi; a primeira consulta de verdade acontece 1 min depois, no servidor
+  // (com o limitador). Até lá, o navegador mostra os últimos valores que guardou.
+  const building = process.env.NEXT_PHASE === "phase-production-build";
+  const waiting = (symbols: string[]) => ({
+    items: symbols.map((symbol): QuoteItem => ({ symbol, ok: false, error: BUILD_WAIT_MSG })),
+    rangeUsed: serverEnv.brapiHistoryRange,
+  });
+
   const [idx, assets, fx] = await Promise.all([
-    fetchQuotes(indexSymbols),
-    fetchQuotes(assetSymbols),
+    building ? waiting(indexSymbols) : fetchQuotes(indexSymbols),
+    building ? waiting(assetSymbols) : fetchQuotes(assetSymbols),
     fetchFx(),
   ]);
   // Falhas permanentes (ticker inexistente, fora do plano) seguem o intervalo
   // normal, para não gastar a cota.
-  if (hasTransient([...idx.items, ...assets.items, ...fx]))
+  if (building) cacheLife({ stale: 60, revalidate: 60, expire: WEEK });
+  else if (hasTransient([...idx.items, ...assets.items, ...fx]))
     cacheLife({ stale: RETRY_SECONDS, revalidate: RETRY_SECONDS, expire: WEEK });
   else cacheLife({ stale: refresh, revalidate: refresh, expire: WEEK });
 
@@ -143,16 +155,14 @@ export async function getWorld(): Promise<WorldResponse> {
   "use cache";
   const symbols = worldStocks.slice(0, serverEnv.worldLimit).map((w) => w.symbol);
 
-  // Na publicação (build), todas as rotas consultam a brapi ao mesmo tempo, em
-  // processos separados, e passam das 20 chamadas/min. A aba Mundo (8 chamadas)
-  // fica para o primeiro acesso, 1 min depois; assim as cotações principais cabem.
+  // Na publicação (build), sem brapi: ver getQuotes.
   if (process.env.NEXT_PHASE === "phase-production-build") {
     cacheLife({ stale: 60, revalidate: 60, expire: WEEK });
     return {
       generatedAt: new Date().toISOString(),
       refreshSeconds: WORLD_REFRESH_SECONDS,
       historyRange: serverEnv.brapiHistoryRange,
-      items: symbols.map((symbol) => ({ symbol, ok: false, error: "Aguardando a primeira consulta após a publicação." })),
+      items: symbols.map((symbol) => ({ symbol, ok: false, error: BUILD_WAIT_MSG })),
     };
   }
 

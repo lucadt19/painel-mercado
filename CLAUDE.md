@@ -261,7 +261,7 @@ _(Adicionar aqui, com data, cada decisão tomada durante o projeto.)_
   - Comparador: cards de resumo por investimento (rentabilidade líquida a.a., período, faixa do IR, alíquota ou isenção, custódia e valor final), com o selo "Rende mais".
   - Cards do topo da Visão Geral clicáveis. Índices abrem `/acoes/[ticker]`; dólar e euro abrem `/cambio/[par]`, com histórico diário de 5 anos da PTAX de venda (SGS 1 e 21619, cache de 1 h).
 - 04/11/2026: contra o "indisponível":
-  - No build, a aba Mundo não consulta a brapi; busca no primeiro acesso, 1 min depois. Assim o build fica em ~14 chamadas, abaixo de 20/min.
+  - No build, cotações e aba Mundo não consultam a brapi (o Next monta as rotas mais de uma vez e estourava o limite de 20/min); a primeira consulta é no acesso seguinte, 1 min depois. O câmbio (PTAX) e a lista da B3 seguem no build.
   - O servidor (memória da instância) e o navegador (`localStorage`, chave `painel:ultimos-valores:v1`) guardam o último valor bom de cotações, câmbio e indicadores do BC. Numa falha passageira, mostram esse valor com o horário original e "último dado de …".
   - Não rodar build local com o token logo antes de publicar.
 - 03/11/2026: horários e feriados da B3 ficam em `config/b3-calendario.ts`, a partir dos comunicados oficiais da B3; atualizar a cada ano e a cada mudança de horário (horário de verão dos EUA).
