@@ -16,6 +16,8 @@ const THEMES: ("todos" | NewsTheme)[] = ["todos", "mercado", "economia", "empres
 const selectCls =
   "rounded-md border border-border-strong bg-surface px-2 py-1.5 text-xs text-text hover:bg-surface-hover";
 
+const weight = (n: NewsItem) => n.score + (n.paywall === "gratis" ? 5 : 0);
+
 export function NewsView() {
   const { data, error } = useNews();
   const [theme, setTheme] = useState<"todos" | NewsTheme>("todos");
@@ -36,7 +38,8 @@ export function NewsView() {
     () =>
       filtered
         .filter((n) => n.image)
-        .reduce<NewsItem | undefined>((best, n) => (!best || n.score > best.score ? n : best), undefined),
+        // Preferência para a versão gratuita: +5 na relevância.
+        .reduce<NewsItem | undefined>((best, n) => (!best || weight(n) > weight(best) ? n : best), undefined),
     [filtered],
   );
   const rest = useMemo(() => filtered.filter((n) => n !== featured), [filtered, featured]);

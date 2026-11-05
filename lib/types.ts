@@ -220,6 +220,13 @@ export type NewsItem = {
   coverage: number;
   /** Relevância: cobertura entre veículos com desconto pela idade. */
   score: number;
+  /** Se o veículo exige assinatura (config/news.ts). */
+  paywall: "gratis" | "assinante";
+  /**
+   * Mesma notícia em veículos pagos, escondida da lista porque há esta
+   * versão gratuita. Mostrada como "também em ...".
+   */
+  alsoIn?: { sourceName: string; link: string; paywall: "gratis" | "assinante" }[];
 };
 
 export type NewsResponse = {

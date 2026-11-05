@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { THEME_LABEL } from "@/config/news";
+import { newsSources, PAYWALL_LABEL, THEME_LABEL } from "@/config/news";
+import { Lock } from "lucide-react";
 import { formatUpdatedAt } from "@/lib/format";
 import type { NewsItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -52,10 +53,64 @@ function ThemePill({ item, onImage }: { item: NewsItem; onImage?: boolean }) {
   );
 }
 
+/** "grátis" ou "assinante" ao lado do veículo (detalhe ao passar o mouse). */
+export function PaywallTag({ item, onImage }: { item: Pick<NewsItem, "paywall" | "sourceId">; onImage?: boolean }) {
+  const note = newsSources.find((s) => s.id === item.sourceId)?.paywallNote;
+  const paid = item.paywall === "assinante";
+  return (
+    <span
+      title={note ?? (paid ? "Exige assinatura." : "Matéria aberta.")}
+      className={cn(
+        "inline-flex items-center gap-0.5 rounded border px-1 text-[0.65rem] leading-4",
+        onImage ? "border-on-image/40 text-on-image" : "border-border text-muted",
+      )}
+    >
+      {paid && <Lock aria-hidden className="size-2.5" />}
+      {PAYWALL_LABEL[item.paywall]}
+    </span>
+  );
+}
+
+/** "também em Valor (assinante)": a mesma notícia em veículos pagos, escondida da lista. */
+export function AlsoIn({ item, onImage }: { item: NewsItem; onImage?: boolean }) {
+  if (!item.alsoIn?.length) return null;
+  return (
+    <span className={cn("text-xs", onImage ? "text-on-image" : "text-muted")}>
+      também em{" "}
+      {item.alsoIn.map((a, i) => (
+        <span key={a.link}>
+          {i > 0 && ", "}
+          {/* O card inteiro já é um link: este abre a versão paga sem abrir o card. */}
+          <span
+            role="link"
+            tabIndex={0}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              window.open(a.link, "_blank", "noopener,noreferrer");
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                e.stopPropagation();
+                window.open(a.link, "_blank", "noopener,noreferrer");
+              }
+            }}
+            className="cursor-pointer underline decoration-dotted underline-offset-2 hover:text-accent"
+          >
+            {a.sourceName} ({PAYWALL_LABEL[a.paywall]})
+          </span>
+        </span>
+      ))}
+    </span>
+  );
+}
+
 function Meta({ item, onImage }: { item: NewsItem; onImage?: boolean }) {
   return (
-    <span className={cn("flex flex-wrap items-center gap-x-2 text-xs", onImage ? "text-on-image" : "text-muted")}>
+    <span className={cn("flex flex-wrap items-center gap-x-2 gap-y-1 text-xs", onImage ? "text-on-image" : "text-muted")}>
       <span className="font-medium">{item.sourceName}</span>
+      <PaywallTag item={item} onImage={onImage} />
       <span aria-hidden>·</span>
       <time dateTime={item.publishedAt} className="tabular-nums">
         {formatUpdatedAt(item.publishedAt)}
@@ -88,6 +143,7 @@ export function FeaturedNews({ item }: { item: NewsItem }) {
           {item.title}
         </h2>
         <Meta item={item} onImage />
+        <AlsoIn item={item} onImage />
       </div>
     </a>
   );
@@ -105,8 +161,9 @@ export function NewsCard({ item }: { item: NewsItem }) {
       <div className="flex flex-1 flex-col gap-2 p-3">
         <ThemePill item={item} />
         <h3 className="line-clamp-3 text-sm leading-snug font-medium group-hover:text-accent">{item.title}</h3>
-        <div className="mt-auto">
+        <div className="mt-auto flex flex-col gap-1">
           <Meta item={item} />
+          <AlsoIn item={item} />
         </div>
       </div>
     </a>

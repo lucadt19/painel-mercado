@@ -26,14 +26,28 @@ export type NewsSource = {
   pathThemes?: [string, NewsTheme | null][];
   /** Tema quando nada mais se aplica (feeds que já são de uma seção só). */
   defaultTheme?: NewsTheme;
+  /**
+   * "gratis": matérias abertas; "assinante": exige assinatura (às vezes com
+   * algumas matérias grátis por mês, ver `paywallNote`). Pelo modelo de
+   * assinatura do veículo; não abrimos as matérias para conferir.
+   */
+  paywall: Paywall;
+  /** Detalhe mostrado ao passar o mouse no selo. */
+  paywallNote?: string;
 };
 
+export type Paywall = "gratis" | "assinante";
+
+export const PAYWALL_LABEL: Record<Paywall, string> = { gratis: "grátis", assinante: "assinante" };
+
 export const newsSources: NewsSource[] = [
-  { id: "infomoney", name: "InfoMoney", url: "https://www.infomoney.com.br/feed/" },
+  { id: "infomoney", name: "InfoMoney", url: "https://www.infomoney.com.br/feed/", paywall: "gratis" },
   {
     id: "valor",
     name: "Valor Econômico",
     url: "https://valor.globo.com/rss/valor/",
+    paywall: "assinante",
+    paywallNote: "Exige assinatura para a maioria das matérias.",
     pathThemes: [
       ["/financas/", "mercado"],
       ["/empresas/", "empresas"],
@@ -47,6 +61,8 @@ export const newsSources: NewsSource[] = [
     id: "estadao",
     name: "Estadão",
     url: "https://www.estadao.com.br/arc/outboundfeeds/feeds/rss/sections/economia/",
+    paywall: "assinante",
+    paywallNote: "Exige assinatura; algumas matérias ficam abertas.",
     pathThemes: [["/economia/negocios/", "empresas"]],
     defaultTheme: "economia",
   },
@@ -54,11 +70,19 @@ export const newsSources: NewsSource[] = [
     id: "folha",
     name: "Folha",
     url: "https://feeds.folha.uol.com.br/mercado/rss091.xml",
+    paywall: "assinante",
+    paywallNote: "Exige assinatura; libera algumas matérias por mês com cadastro.",
     defaultTheme: "economia",
   },
-  { id: "exame", name: "Exame", url: "https://exame.com/feed/" },
-  { id: "moneytimes", name: "Money Times", url: "https://www.moneytimes.com.br/feed/" },
-  { id: "g1", name: "g1", url: "https://g1.globo.com/rss/g1/economia/", defaultTheme: "economia" },
+  {
+    id: "exame",
+    name: "Exame",
+    url: "https://exame.com/feed/",
+    paywall: "gratis",
+    paywallNote: "Aberta; algumas matérias são exclusivas para assinantes.",
+  },
+  { id: "moneytimes", name: "Money Times", url: "https://www.moneytimes.com.br/feed/", paywall: "gratis" },
+  { id: "g1", name: "g1", url: "https://g1.globo.com/rss/g1/economia/", defaultTheme: "economia", paywall: "gratis" },
 ];
 
 /** Regras gerais por trecho do endereço (valem para todos os veículos). */

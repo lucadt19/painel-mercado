@@ -284,3 +284,7 @@ _(Adicionar aqui, com data, cada decisão tomada durante o projeto.)_
     - Senha única `WATCHLIST_PASSWORD` (na Vercel; a de teste local fica no `.env.local`). Cookie `painel_sessao` assinado com HMAC, 90 dias. Bloqueio de 15 min após 5 erros por IP.
     - Máximo de 20 ativos, por causa da cota da brapi (~73% dela com 20). Com mais de 15 ativos, a rodada espera vagas no limite de 20/min (até 75 s por chamada; `useCacheTimeout` 130 s e `maxDuration` 120 s em `/api/quotes`).
     - Mudou a lista → `revalidateTag("quotes")` renova as cotações.
+- 05/11/2026: notícias grátis × assinante, a pedido. Todas as fontes continuam.
+  - Cada veículo tem `paywall` em `config/news.ts`: grátis para InfoMoney, Money Times, Exame e g1; assinante para Valor, Estadão e Folha. Vem do modelo de assinatura do veículo; as matérias não são abertas para conferir.
+  - Selo "grátis"/"assinante" ao lado da fonte. Mesmo assunto em veículo pago e grátis (3 palavras-chave e 25% de semelhança, até 12 h): fica a versão grátis, e a paga vira o link "também em Folha (assinante)".
+  - O destaque dá +5 de relevância à versão grátis.

@@ -5,7 +5,7 @@ import { THEME_LABEL } from "@/config/news";
 import type { NewsItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
-import { NewsImage } from "@/components/news/news-cards";
+import { AlsoIn, NewsImage, PaywallTag } from "@/components/news/news-cards";
 
 /**
  * Lista de manchetes: só título (link para a matéria original), veículo,
@@ -53,6 +53,7 @@ export function NewsList({
               <span className="text-sm leading-snug group-hover:text-accent">{n.title}</span>
               <span className="flex flex-wrap items-center gap-x-2 text-xs text-muted">
                 <span className="font-medium">{n.sourceName}</span>
+                <PaywallTag item={n} />
                 <span aria-hidden>·</span>
                 <time dateTime={n.publishedAt} className="tabular-nums">
                   {formatUpdatedAt(n.publishedAt)}
@@ -65,6 +66,7 @@ export function NewsList({
                 )}
                 <span className="sr-only">(abre o site do veículo em nova aba)</span>
               </span>
+              <AlsoIn item={n} />
             </span>
           </a>
         </li>

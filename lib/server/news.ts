@@ -148,6 +148,7 @@ async function fetchSource(source: NewsSource): Promise<NewsItem[]> {
       image: imageOf(it, link),
       coverage: 1,
       score: 0,
+      paywall: source.paywall,
     });
   }
   return out;
@@ -187,6 +188,44 @@ function scoreRelevance(items: NewsItem[]) {
   });
 }
 
+/**
+ * Mesmo assunto em veículo pago e gratuito: fica só a versão gratuita (a paga
+ * vira "também em ..."). Para esconder, a semelhança precisa ser maior do que
+ * a usada na relevância: 3 palavras-chave em comum e 25% do total, até 12 h de
+ * diferença (calibrado com as manchetes de 05/11/2026). Às vezes junta dois
+ * ângulos do mesmo tema; por isso a versão paga continua como link em
+ * "também em ...". Assuntos só em veículos pagos continuam na lista.
+ */
+function preferFree(items: NewsItem[]): NewsItem[] {
+  const kws = items.map((i) => keywords(i.title));
+  const times = items.map((i) => Date.parse(i.publishedAt));
+  const hidden = new Set<number>();
+  items.forEach((paid, p) => {
+    if (paid.paywall !== "assinante") return;
+    let best = -1;
+    let bestSim = 0;
+    items.forEach((free, f) => {
+      if (free.paywall !== "gratis" || Math.abs(times[p] - times[f]) > 12 * 3600_000) return;
+      let shared = 0;
+      for (const w of kws[p]) if (kws[f].has(w)) shared++;
+      const sim = shared / (kws[p].size + kws[f].size - shared || 1);
+      if (shared >= 3 && sim >= 0.25 && sim > bestSim) {
+        best = f;
+        bestSim = sim;
+      }
+    });
+    if (best >= 0) {
+      hidden.add(p);
+      const free = items[best];
+      free.alsoIn = [...(free.alsoIn ?? []), { sourceName: paid.sourceName, link: paid.link, paywall: paid.paywall }];
+      // A versão gratuita herda a relevância do assunto.
+      free.coverage = Math.max(free.coverage, paid.coverage);
+      free.score = Math.max(free.score, paid.score);
+    }
+  });
+  return items.filter((_, i) => !hidden.has(i));
+}
+
 /** Todos os veículos em paralelo; se um cair, só ele fica de fora. */
 export async function fetchNews(): Promise<Omit<NewsResponse, "generatedAt">> {
   const results = await Promise.all(
@@ -208,5 +247,5 @@ export async function fetchNews(): Promise<Omit<NewsResponse, "generatedAt">> {
     .slice(0, MAX_ITEMS);
   scoreRelevance(items);
 
-  return { sources: results.map((r) => r.source), items };
+  return { sources: results.map((r) => r.source), items: preferFree(items) };
 }
