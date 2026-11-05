@@ -100,12 +100,13 @@ async function brapiGet<T>(path: string, retries = 1): Promise<T> {
     headers: { Authorization: `Bearer ${serverEnv.brapiToken}` },
   });
 
-  // Limite por minuto: se a brapi pedir uma espera curta (até 5 s), espera e
-  // tenta mais uma vez; se for longa, desiste logo (o Next limita cada rota a
-  // 50 s) e o item é tentado de novo em 5 min.
+  // Limite por minuto: se a brapi pedir uma espera (Retry-After) curta, espera
+  // e tenta mais uma vez; se for longa, desiste e o item é tentado de novo em 5 min.
   if (res.status === 429) {
     const wait = Number(res.headers.get("retry-after") ?? res.headers.get("ratelimit-reset") ?? 60);
-    if (retries > 0 && Number.isFinite(wait) && wait <= 5) {
+    // No build, só esperas curtas (limite de 50 s); no ar, até 1 min.
+    const maxWait = process.env.NEXT_PHASE === "phase-production-build" ? 5 : 60;
+    if (retries > 0 && Number.isFinite(wait) && wait <= maxWait) {
       await sleep(Math.max(wait, 1) * 1000);
       return brapiGet<T>(path, retries - 1);
     }
