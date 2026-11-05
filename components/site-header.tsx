@@ -3,6 +3,8 @@ import { siteName } from "@/config/site";
 import { TopNav } from "@/components/nav-links";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { MarketStatus } from "@/components/market-status";
+import { HeaderSearch } from "@/components/header-search";
+import { Suspense } from "react";
 
 export function SiteHeader() {
   return (
@@ -15,6 +17,9 @@ export function SiteHeader() {
         <TopNav />
 
         <div className="flex items-center gap-3 justify-self-end">
+          <Suspense fallback={null}>
+            <HeaderSearch />
+          </Suspense>
           <MarketStatus />
           <ThemeToggle />
         </div>
