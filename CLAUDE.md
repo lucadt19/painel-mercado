@@ -287,4 +287,4 @@ _(Adicionar aqui, com data, cada decisão tomada durante o projeto.)_
 - 05/11/2026: notícias grátis × assinante, a pedido. Todas as fontes continuam.
   - Cada veículo tem `paywall` em `config/news.ts`: grátis para InfoMoney, Money Times, Exame e g1; assinante para Valor, Estadão e Folha. Vem do modelo de assinatura do veículo; as matérias não são abertas para conferir.
   - Selo "grátis"/"assinante" ao lado da fonte. Mesmo assunto em veículo pago e grátis (3 palavras-chave e 25% de semelhança, até 12 h): fica a versão grátis, e a paga vira o link "também em Folha (assinante)".
-  - O destaque dá +5 de relevância à versão grátis.
+  - O destaque continua sendo o assunto mais importante (mais veículos). A preferência pela versão grátis vale só dentro do mesmo assunto, que herda a relevância dele. Sem bônus para grátis, para não passar uma notícia menos importante na frente.

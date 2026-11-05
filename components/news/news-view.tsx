@@ -16,8 +16,6 @@ const THEMES: ("todos" | NewsTheme)[] = ["todos", "mercado", "economia", "empres
 const selectCls =
   "rounded-md border border-border-strong bg-surface px-2 py-1.5 text-xs text-text hover:bg-surface-hover";
 
-const weight = (n: NewsItem) => n.score + (n.paywall === "gratis" ? 5 : 0);
-
 export function NewsView() {
   const { data, error } = useNews();
   const [theme, setTheme] = useState<"todos" | NewsTheme>("todos");
@@ -38,8 +36,9 @@ export function NewsView() {
     () =>
       filtered
         .filter((n) => n.image)
-        // Preferência para a versão gratuita: +5 na relevância.
-        .reduce<NewsItem | undefined>((best, n) => (!best || weight(n) > weight(best) ? n : best), undefined),
+        // A mais importante (mais veículos no assunto). Se o assunto saiu num
+        // veículo grátis, a versão grátis já ficou com a relevância dele (lib/server/news.ts).
+        .reduce<NewsItem | undefined>((best, n) => (!best || n.score > best.score ? n : best), undefined),
     [filtered],
   );
   const rest = useMemo(() => filtered.filter((n) => n !== featured), [filtered, featured]);
