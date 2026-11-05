@@ -34,6 +34,28 @@ export function buildSearchIndex(items: SearchItem[]): Indexed[] {
     });
 }
 
+/**
+ * Filtro de tabela: o ativo casa com o texto digitado? Mesma regra da busca
+ * (ticker que começa com o texto, ou todas as palavras no nome/apelidos).
+ */
+export function makeMatcher(query: string): (item: SearchItem) => boolean {
+  const q = normalize(query.trim());
+  if (!q) return () => true;
+  const terms = wordsOf(q);
+  const cache = new Map<string, string[]>();
+  return (item) => {
+    if (normalize(item.symbol).startsWith(q.replace(/\s/g, ""))) return true;
+    if (!terms.length) return false;
+    let words = cache.get(item.symbol);
+    if (!words) {
+      const aliases = searchAliases[item.symbol.slice(0, 4)] ?? [];
+      words = [...wordsOf(item.name), ...aliases.flatMap(wordsOf)];
+      cache.set(item.symbol, words);
+    }
+    return terms.every((t) => words.some((w) => w.startsWith(t)));
+  };
+}
+
 /** Até `limit` resultados: ticker exato, ticker que começa com o texto e, depois, nome. */
 export function searchAssets(index: Indexed[], query: string, limit = 8): SearchItem[] {
   const q = normalize(query.trim());

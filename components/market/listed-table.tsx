@@ -11,6 +11,8 @@ import { Change } from "@/components/change";
 import { Segmented } from "@/components/ui/segmented";
 import { TickerLogo } from "@/components/ticker-logo";
 import { EarningsBadge } from "@/components/earnings-badge";
+import { makeMatcher } from "@/lib/asset-search";
+import { Search } from "lucide-react";
 
 type SortKey = "marketCap" | "volume" | "up" | "down";
 
@@ -70,16 +72,27 @@ export function ListedTable({
   const [sector, setSector] = useState("");
   const [sort, setSort] = useState<SortKey>("marketCap");
   const [shown, setShown] = useState(PAGE);
+  const [text, setText] = useState("");
 
-  const ofKind = useMemo(() => (assets ?? []).filter((a) => a.kind === kind), [assets, kind]);
+  const ofKind = useMemo(() => {
+    // Sem os tickers do fracionário (PETR4F): repetem o ativo do lote padrão.
+    const symbols = new Set((assets ?? []).map((a) => a.symbol));
+    return (assets ?? []).filter(
+      (a) => a.kind === kind && !(a.symbol.endsWith("F") && symbols.has(a.symbol.slice(0, -1))),
+    );
+  }, [assets, kind]);
   const sectors = useMemo(
     () => [...new Set(ofKind.map((a) => a.sector).filter((s): s is string => !!s))].sort(),
     [ofKind],
   );
-  const rows = useMemo(
-    () => sortAssets(sector ? ofKind.filter((a) => a.sector === sector) : ofKind, sort),
-    [ofKind, sector, sort],
-  );
+  const rows = useMemo(() => {
+    // Filtro por nome ou ticker, com a mesma regra da busca ("banco do brasil" acha BBAS3).
+    const matches = makeMatcher(text);
+    const filtered = ofKind.filter(
+      (a) => (!sector || a.sector === sector) && matches({ symbol: a.symbol, name: names[a.symbol] ?? a.name ?? "", kind: a.kind }),
+    );
+    return sortAssets(filtered, sort);
+  }, [ofKind, sector, sort, text, names]);
 
   const resetPaging = () => setShown(PAGE);
 
@@ -98,6 +111,20 @@ export function ListedTable({
       </SectionTitle>
 
       <div className="mb-3 flex flex-wrap items-center gap-2">
+        <label className="flex min-w-[12rem] flex-1 items-center gap-1.5 rounded-md border border-border-strong bg-surface px-2 focus-within:border-accent sm:max-w-xs">
+          <Search aria-hidden className="size-3.5 text-muted" strokeWidth={1.75} />
+          <span className="sr-only">Filtrar por nome ou ticker</span>
+          <input
+            type="search"
+            value={text}
+            onChange={(e) => {
+              setText(e.target.value);
+              resetPaging();
+            }}
+            placeholder="Filtrar por nome ou ticker"
+            className="w-full bg-transparent py-1.5 text-xs outline-none placeholder:text-muted"
+          />
+        </label>
         {kinds.length > 1 && (
           <Segmented
             label="Tipo de ativo"
@@ -179,7 +206,13 @@ export function ListedTable({
                 ))
               ) : null
             ) : (
-              rows.slice(0, shown).map((a) => (
+              rows.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className={cn(td, "py-6 text-center text-xs text-muted")}>
+                    {text ? `Nenhum ativo encontrado para “${text}”.` : "Nenhum ativo neste filtro."}
+                  </td>
+                </tr>
+              ) : rows.slice(0, shown).map((a) => (
                 <tr key={a.symbol} className="transition-colors hover:bg-surface-hover">
                   <td className={td}>
                     <div className="flex items-center gap-2.5">
