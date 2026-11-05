@@ -1,0 +1,35 @@
+# Atualiza o histórico de preços da B3 (data/b3-historico) uma vez por mês.
+# Os últimos 3 meses vêm da brapi; isto cobre o período anterior.
+# Para desligar: GitHub > Actions > "Histórico da B3" > Disable workflow.
+name: Histórico da B3
+
+on:
+  schedule:
+    - cron: "0 10 2 * *" # dia 2 de cada mês, 07:00 em Brasília
+  workflow_dispatch: # permite rodar à mão pela aba Actions
+
+permissions:
+  contents: write
+
+jobs:
+  atualizar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Gerar histórico
+        run: node scripts/b3-historico.mjs
+      - name: Salvar se mudou
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/b3-historico
+          if git diff --cached --quiet; then
+            echo "Nada mudou."
+          else
+            git commit -m "Atualiza histórico da B3"
+            git push
+          fi

@@ -40,3 +40,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 !.env.example
+
+# cache dos arquivos da B3 (scripts/b3-historico.mjs)
+/.cache/

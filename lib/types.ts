@@ -141,6 +141,11 @@ export type AssetResponse = {
   dividends: DividendPayment[];
   /** O que o plano da brapi cobre (indicadores completos: Pro; proventos: Startup ou Pro). */
   coverage: { fundamentals: boolean; dividends: boolean };
+  /**
+   * Parte antiga do histórico vinda dos arquivos da B3: até que dia, e os
+   * desdobramentos/grupamentos que ajustamos. Null se tudo veio da brapi.
+   */
+  b3?: { until: string; adjustments: { data: string; fator: string }[] } | null;
 }>;
 
 // ---------- Indicadores macro (BCB) ----------

@@ -245,7 +245,11 @@ export function AssetView({ ticker }: { ticker: string }) {
 
   const q = ok.quote;
   const name = world?.name ?? shortNames[ticker] ?? (listed?.name || q.name);
-  const availableDays = RANGE_DAYS[ok.historyRange] ?? 0;
+  // Com a B3, vale o período que o histórico de fato cobre (ativos novos têm menos de 5 anos).
+  const hist = q.history;
+  const availableDays = ok.b3
+    ? (Date.parse(hist[hist.length - 1].date) - Date.parse(hist[0].date)) / 86_400_000 + 10
+    : (RANGE_DAYS[ok.historyRange] ?? 0);
   const periodDays = (p: Period) => (p.days ?? 0) + (p.months ?? 0) * 30 + (p.years ?? 0) * 365;
 
   return (
@@ -285,7 +289,9 @@ export function AssetView({ ticker }: { ticker: string }) {
                 title: intraday
                   ? "Gráfico intradiário requer o plano Startup da brapi"
                   : tooLong
-                    ? "Período não disponível no plano atual da brapi (Startup: 1 ano; Pro: 5 anos ou mais)"
+                    ? ok.b3
+                      ? `Histórico disponível desde ${formatDate(hist[0].date)}`
+                      : "Período não disponível no plano atual da brapi (Startup: 1 ano; Pro: 5 anos ou mais)"
                     : undefined,
               };
             })}
@@ -305,7 +311,22 @@ export function AssetView({ ticker }: { ticker: string }) {
             }
           />
         </Card>
-        <p className="mt-2 text-xs text-muted">Fechamentos diários · fonte: brapi</p>
+        {ok.b3 ? (
+          <div className="mt-2 flex flex-col gap-0.5 text-xs text-muted">
+            <p>
+              Fechamentos diários · até {formatDate(ok.b3.until)}: B3 (Séries Históricas, arquivo oficial); depois:
+              brapi. Preços não ajustados por dividendos.
+            </p>
+            {ok.b3.adjustments.length > 0 && (
+              <p>
+                Ajustado por {ok.b3.adjustments.map((a) => `${a.fator} em ${formatDate(a.data)}`).join(", ")} (detectado
+                pelo salto de preço; estimativa).
+              </p>
+            )}
+          </div>
+        ) : (
+          <p className="mt-2 text-xs text-muted">Fechamentos diários · fonte: brapi</p>
+        )}
       </section>
 
       <Indicators f={ok.fundamentals} currency={q.currency} covered={ok.coverage.fundamentals} />

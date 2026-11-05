@@ -28,6 +28,7 @@ import { fetchFxFromPtax, fetchFxHistory, fetchMacroHistory, fetchMacroIndicator
 import { fetchTreasuryAll, TESOURO_SOURCE } from "@/lib/server/tesouro";
 import { fetchNews } from "@/lib/server/news";
 import { buildEarnings, fetchCvmFilings } from "@/lib/server/earnings";
+import { closeOnOrBefore, loadB3History, mergeHistory } from "@/lib/server/b3-history";
 import { errorMessage, isTransientError } from "@/lib/server/http";
 import { checkEstimatedQuota, WORLD_REFRESH_SECONDS } from "@/lib/server/quota";
 
@@ -73,6 +74,35 @@ function slimHistory(items: QuoteItem[]): QuoteItem[] {
       ? { ...i, quote: { ...i.quote, history: [i.quote.history[0], ...i.quote.history.slice(-23)] } }
       : i,
   );
+}
+
+/**
+ * Variação em 12 meses no plano Gratuito: a brapi entrega só 3 meses, então o
+ * fechamento de 1 ano atrás vem dos arquivos da B3 e entra como primeiro
+ * ponto do histórico (as tabelas calculam a variação a partir dele).
+ * Devolve também se todos os ativos conseguiram esse ponto.
+ */
+async function withYearAgo(items: QuoteItem[]): Promise<{ items: QuoteItem[]; complete: boolean }> {
+  // Sem nenhum ativo com dados (ex.: na publicação), não dá para afirmar "12 meses".
+  let complete = items.some((i) => i.ok);
+  const out = await Promise.all(
+    items.map(async (item) => {
+      if (!item.ok || !item.quote.history.length) return item;
+      const recent = item.quote.history;
+      const last = recent[recent.length - 1].date;
+      const yearAgo = `${Number(last.slice(0, 4)) - 1}${last.slice(4)}`;
+      if (recent[0].date <= yearAgo) return item; // o plano já cobre 1 ano
+      const { history } = mergeHistory(await loadB3History(item.symbol), recent);
+      const point = closeOnOrBefore(history, yearAgo);
+      // Aceita até 10 dias antes (feriados, ativo sem negócio no dia).
+      if (!point || Date.parse(yearAgo) - Date.parse(point.date) > 10 * 86_400_000) {
+        complete = false;
+        return item;
+      }
+      return { ...item, quote: { ...item.quote, history: [point, ...recent] } };
+    }),
+  );
+  return { items: out, complete };
 }
 
 /** Falha passageira (limite por minuto, rede)? Então vale tentar de novo em 5 min. */
@@ -134,15 +164,17 @@ export async function getQuotes(): Promise<QuotesResponse> {
     cacheLife({ stale: RETRY_SECONDS, revalidate: RETRY_SECONDS, expire: WEEK });
   else cacheLife({ stale: refresh, revalidate: refresh, expire: WEEK });
 
+  const yearAgo = await withYearAgo(assets.items);
   const bySymbol = new Map(
-    withLastGood(slimHistory(assets.items), (i) => `q:${i.symbol}`).map((i) => [i.symbol, i]),
+    withLastGood(slimHistory(yearAgo.items), (i) => `q:${i.symbol}`).map((i) => [i.symbol, i]),
   );
 
   return {
     generatedAt: new Date().toISOString(),
     refreshSeconds: refresh,
     delayMinutes: Math.round(refresh / 60),
-    historyRange: idx.rangeUsed === "3mo" || assets.rangeUsed === "3mo" ? "3mo" : "1y",
+    // Rótulo da coluna das tabelas: 12 meses se todos os ativos têm o ponto de 1 ano atrás.
+    historyRange: assets.rangeUsed === "1y" || yearAgo.complete ? "1y" : "3mo",
     indices: withLastGood(slimHistory(idx.items), (i) => `q:${i.symbol}`),
     watchlist: watchlistSymbols.map((s) => bySymbol.get(s)!),
     etfs: trackedEtfs.map((s) => bySymbol.get(s)!),
@@ -203,7 +235,23 @@ export async function getAsset(symbol: string): Promise<AssetResponse> {
   try {
     const asset = await fetchAsset(symbol);
     cacheLife({ stale: 1800, revalidate: 1800, expire: WEEK });
-    return { generatedAt, ok: true, ...asset };
+
+    // Antes dos meses que a brapi entrega, o histórico vem dos arquivos da B3.
+    const b3 = asset.quote.currency === "BRL" ? await loadB3History(symbol) : null;
+    const { history, b3Until } = mergeHistory(b3, asset.quote.history);
+    const spanDays = history.length
+      ? (Date.parse(history[history.length - 1].date) - Date.parse(history[0].date)) / 86_400_000
+      : 0;
+    const historyRange = !b3Until ? asset.historyRange : spanDays >= 1800 ? "5y" : spanDays >= 360 ? "1y" : asset.historyRange;
+    return {
+      generatedAt,
+      ok: true,
+      ...asset,
+      quote: { ...asset.quote, history },
+      historyRange,
+      // Só os ajustes da parte antiga: nos meses da brapi o gráfico segue os preços dela.
+      b3: b3Until && b3 ? { until: b3Until, adjustments: b3.adjustments.filter((a) => a.data <= b3Until) } : null,
+    };
   } catch (err) {
     const error = errorMessage(err);
     const retry = isTransientError(error) ? RETRY_SECONDS : 1800;
