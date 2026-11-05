@@ -25,7 +25,7 @@
 ## 2. Páginas (4)
 
 ### 2.1 Visão Geral (`/`): a página principal
-- **Faixa de índices no topo:** Ibovespa, IFIX, dólar (USD/BRL), euro (EUR/BRL) e S&P 500, se disponível. Cada um mostra o valor, a variação do dia em % e um sparkline do dia ou da semana.
+- **Faixa de índices no topo:** Ibovespa, iene (JPY/BRL), dólar (USD/BRL), euro (EUR/BRL) e S&P 500 (o IFIX saiu em 05/11/2026, a pedido). Cada um mostra o valor, a variação do dia em % e um sparkline do dia ou da semana.
 - **Minha watchlist:** tabela compacta com ticker, nome curto, preço, variação do dia, variação em 12 meses e um mini-gráfico. A lista inicial fica em arquivo de configuração (ver seção 4).
 - **Renda fixa resumida:** cards com Selic meta, CDI, IPCA (12 meses) e a taxa de um Tesouro IPCA+ de referência.
 - **Manchetes:** as 5 notícias mais recentes, com link para "ver todas".
@@ -288,3 +288,4 @@ _(Adicionar aqui, com data, cada decisão tomada durante o projeto.)_
   - Cada veículo tem `paywall` em `config/news.ts`: grátis para InfoMoney, Money Times, Exame e g1; assinante para Valor, Estadão e Folha. Vem do modelo de assinatura do veículo; as matérias não são abertas para conferir.
   - Selo "grátis"/"assinante" ao lado da fonte. Mesmo assunto em veículo pago e grátis (3 palavras-chave e 25% de semelhança, até 12 h): fica a versão grátis, e a paga vira o link "também em Folha (assinante)".
   - O destaque continua sendo o assunto mais importante (mais veículos). A preferência pela versão grátis vale só dentro do mesmo assunto, que herda a relevância dele. Sem bônus para grátis, para não passar uma notícia menos importante na frente.
+- 05/11/2026: iene no lugar do IFIX na faixa do topo, a pedido. PTAX do Banco Central com 5 casas (R$ 0,03460), sem custo de cota; histórico em `/cambio/jpy-brl` pela série SGS 21621. Ordem da faixa em `stripOrder`; casas decimais e série de cada moeda em `fxPairs` (`config/watchlist.ts`). Uma chamada a menos à brapi por rodada.

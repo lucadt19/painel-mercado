@@ -83,15 +83,23 @@ export const watchlistSymbols = [...watchlist.acoes, ...watchlist.etfs, ...watch
 
 /**
  * Índices da faixa do topo, com o símbolo usado na brapi.
- * Dólar e euro ficam em `fxPairs`, porque vêm de outra rota da fonte.
+ * Dólar, euro e iene ficam em `fxPairs`, porque vêm da PTAX do Banco Central.
  */
 export const indices = [
   { symbol: "^BVSP", label: "Ibovespa", decimals: 0 },
-  { symbol: "IFIX", label: "IFIX", decimals: 2 },
   { symbol: "^GSPC", label: "S&P 500", decimals: 2 },
 ];
 
+/**
+ * Moedas (PTAX do Banco Central). `decimals`: casas decimais exibidas (o iene
+ * vale centavos: R$ 0,03460). `sgs`: série diária da PTAX de venda no SGS,
+ * para o histórico de 5 anos.
+ */
 export const fxPairs = [
-  { pair: "USD-BRL", label: "Dólar" },
-  { pair: "EUR-BRL", label: "Euro" },
+  { pair: "USD-BRL", label: "Dólar", decimals: 4, sgs: 1 },
+  { pair: "EUR-BRL", label: "Euro", decimals: 4, sgs: 21619 },
+  { pair: "JPY-BRL", label: "Iene", decimals: 5, sgs: 21621 },
 ];
+
+/** Ordem da faixa do topo da Visão Geral (índices e moedas). */
+export const stripOrder = ["^BVSP", "JPY-BRL", "USD-BRL", "EUR-BRL", "^GSPC"];

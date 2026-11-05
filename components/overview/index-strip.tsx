@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { fxPairs, indices } from "@/config/watchlist";
+import { fxPairs, indices, stripOrder } from "@/config/watchlist";
 import { useQuotes, type QuotesData } from "@/hooks/use-market-data";
-import { formatBRL4, formatNumber } from "@/lib/format";
+import { formatFx, formatNumber } from "@/lib/format";
 import { recentSeries } from "@/lib/series";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
@@ -12,17 +12,17 @@ import { Change } from "@/components/change";
 import { Sparkline } from "@/components/sparkline";
 import { UpdatedAt } from "@/components/updated-at";
 
-/** Ordem da faixa: Ibovespa, IFIX, Dólar, Euro, S&P 500. */
+/** Ordem da faixa: config/watchlist.ts (stripOrder): Ibovespa, Iene, Dólar, Euro, S&P 500. */
 type Slot =
   | { kind: "index"; symbol: string; label: string; decimals: number }
-  | { kind: "fx"; pair: string; label: string };
+  | { kind: "fx"; pair: string; label: string; decimals: number };
 
-const slots: Slot[] = [
-  { kind: "index", ...indices[0] },
-  { kind: "index", ...indices[1] },
-  ...fxPairs.map((p): Slot => ({ kind: "fx", ...p })),
-  ...indices.slice(2).map((i): Slot => ({ kind: "index", ...i })),
-];
+const slots: Slot[] = stripOrder.flatMap((id): Slot[] => {
+  const index = indices.find((i) => i.symbol === id);
+  if (index) return [{ kind: "index", ...index }];
+  const fx = fxPairs.find((p) => p.pair === id);
+  return fx ? [{ kind: "fx", pair: fx.pair, label: fx.label, decimals: fx.decimals }] : [];
+});
 
 /** Mini-gráfico: últimos 5 pregões, terminando no valor atual. */
 const SPARK_DAYS = 5;
@@ -55,7 +55,7 @@ function tileData(slot: Slot, data: QuotesData): TileData | { error: string } {
   if (!item || !item.ok) return { error: item && !item.ok ? item.error : "Sem dados." };
   const r = item.rate;
   return {
-    value: formatBRL4(r.price),
+    value: formatFx(r.price, slot.decimals),
     changePercent: r.changePercent,
     series: recentSeries(r.history, r.price, r.updatedAt, SPARK_DAYS),
     updatedAt: r.updatedAt,

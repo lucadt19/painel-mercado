@@ -7,6 +7,7 @@ import type {
   SeriesPoint,
 } from "@/lib/types";
 import { brDateToIso, errorMessage, fetchWithTimeout, SourceError } from "@/lib/server/http";
+import { fxPairs } from "@/config/watchlist";
 
 /**
  * Banco Central: séries do SGS (Selic, CDI, IPCA) e PTAX (câmbio).
@@ -106,8 +107,8 @@ export async function fetchMacroHistory(): Promise<MacroHistoryResponse["series"
   return Object.fromEntries(entries) as MacroHistoryResponse["series"];
 }
 
-/** PTAX de venda diária no SGS (conferidos em 04/11/2026). */
-export const FX_HISTORY_SERIES: Record<string, number> = { "USD-BRL": 1, "EUR-BRL": 21619 };
+/** PTAX de venda diária no SGS (config/watchlist.ts; conferidos em 05/11/2026). */
+export const FX_HISTORY_SERIES: Record<string, number> = Object.fromEntries(fxPairs.map((p) => [p.pair, p.sgs]));
 
 /** Histórico diário da PTAX de venda, até 5 anos (~1.250 pontos). */
 export async function fetchFxHistory(pair: string): Promise<SeriesPoint[]> {

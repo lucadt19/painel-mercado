@@ -35,6 +35,12 @@ const brl4 = new Intl.NumberFormat("pt-BR", {
 /** R$ 5,4935 (câmbio, com 4 casas como na PTAX). */
 export const formatBRL4 = (n: number) => brl4.format(n);
 
+/** Câmbio com o número de casas da moeda (iene: R$ 0,03460). */
+export const formatFx = (n: number, decimals = 4) =>
+  decimals === 4
+    ? brl4.format(n)
+    : n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+
 /** 1.234,56 (ou com outro número de casas decimais). */
 export const formatNumber = (n: number, decimals = 2) =>
   decimals === 2

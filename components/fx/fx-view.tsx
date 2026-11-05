@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { fxPairs } from "@/config/watchlist";
 import { useFxHistory, useQuotes } from "@/hooks/use-market-data";
-import { formatBRL4, formatDate } from "@/lib/format";
+import { formatDate, formatFx } from "@/lib/format";
 import type { SeriesPoint } from "@/lib/types";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -45,6 +45,8 @@ function Stat({ label, value, note }: { label: string; value: React.ReactNode; n
 /** Página de uma moeda: cotação atual (PTAX) e histórico de até 5 anos. */
 export function FxView({ pair }: { pair: string }) {
   const meta = fxPairs.find((p) => p.pair === pair)!;
+  const { label, decimals } = meta;
+  const fmt = (n: number) => formatFx(n, decimals);
   const quotes = useQuotes();
   const history = useFxHistory(pair);
   const [periodId, setPeriodId] = useState("1A");
@@ -54,10 +56,8 @@ export function FxView({ pair }: { pair: string }) {
     () => (history.data?.ok ? cut(history.data.points, months) : []),
     [history.data, months],
   );
-  const series = useMemo<ChartSeries[]>(
-    () => [{ id: pair, label: meta.label, color: "accent", points }],
-    [pair, meta.label, points],
-  );
+  // Sem useMemo manual: o React Compiler já memoriza.
+  const series: ChartSeries[] = [{ id: pair, label, color: "accent", points }];
 
   const stats = useMemo(() => {
     if (points.length < 2) return null;
@@ -89,7 +89,7 @@ export function FxView({ pair }: { pair: string }) {
           <Skeleton className="h-7 w-48" />
         ) : fx?.ok ? (
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <span className="text-2xl font-semibold tabular-nums">{formatBRL4(fx.rate.price)}</span>
+            <span className="text-2xl font-semibold tabular-nums">{fmt(fx.rate.price)}</span>
             <Change value={fx.rate.changePercent} className="text-sm" />
             <span className="text-xs text-muted">no dia</span>
             <UpdatedAt iso={fx.rate.updatedAt} prefix="PTAX" staleError={fx.stale?.error} />
@@ -117,16 +117,16 @@ export function FxView({ pair }: { pair: string }) {
             Dados indisponíveis no momento
           </p>
         ) : (
-          <SeriesChart series={series} formatValue={formatBRL4} className="h-60 md:h-80" />
+          <SeriesChart series={series} formatValue={fmt} className="h-60 md:h-80" />
         )}
       </Card>
 
       {stats && (
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <Stat label={`Variação em ${periodId}`} value={<Change value={stats.change} />} note={`desde ${formatDate(stats.first.date)}`} />
-          <Stat label="Mínima no período" value={formatBRL4(stats.min.value)} note={`em ${formatDate(stats.min.date)}`} />
-          <Stat label="Máxima no período" value={formatBRL4(stats.max.value)} note={`em ${formatDate(stats.max.date)}`} />
-          <Stat label="Último fechamento" value={formatBRL4(stats.last.value)} note={`PTAX de ${formatDate(stats.last.date)}`} />
+          <Stat label="Mínima no período" value={fmt(stats.min.value)} note={`em ${formatDate(stats.min.date)}`} />
+          <Stat label="Máxima no período" value={fmt(stats.max.value)} note={`em ${formatDate(stats.max.date)}`} />
+          <Stat label="Último fechamento" value={fmt(stats.last.value)} note={`PTAX de ${formatDate(stats.last.date)}`} />
         </div>
       )}
 
