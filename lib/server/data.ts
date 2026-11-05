@@ -27,7 +27,7 @@ import {
 import { fetchFxFromPtax, fetchFxHistory, fetchMacroHistory, fetchMacroIndicators } from "@/lib/server/bcb";
 import { fetchTreasuryAll, TESOURO_SOURCE } from "@/lib/server/tesouro";
 import { fetchNews } from "@/lib/server/news";
-import { buildEarnings, fetchCvmFilings } from "@/lib/server/earnings";
+import { buildEarnings, fetchCvmData } from "@/lib/server/earnings";
 import { closeOnOrBefore, loadB3History, mergeHistory } from "@/lib/server/b3-history";
 import { errorMessage, isTransientError } from "@/lib/server/http";
 import { checkEstimatedQuota, WORLD_REFRESH_SECONDS } from "@/lib/server/quota";
@@ -347,11 +347,11 @@ export async function getFxHistory(pair: string): Promise<FxHistoryResponse> {
   }
 }
 
-/** Entregas de ITR/DFP na CVM (arquivos semanais): renovadas a cada 6 h. */
+/** Releases, ITR/DFP e cadastro de tickers da CVM (arquivos semanais): renovados a cada 6 h. */
 async function getCvmFilings() {
   "use cache";
   cacheLife({ stale: 6 * 3600, revalidate: 6 * 3600, expire: WEEK });
-  return fetchCvmFilings();
+  return fetchCvmData();
 }
 
 /** Selos de "resultado divulgado": CVM + manchetes do dia; renovados a cada 5 min. */
@@ -361,7 +361,7 @@ export async function getEarnings(): Promise<EarningsResponse> {
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date());
   const [filings, news] = await Promise.all([
     // CVM fora do ar: seguimos só com as manchetes.
-    getCvmFilings().catch(() => ({ filings: [], updatedThrough: null })),
+    getCvmFilings().catch(() => ({ filings: [], tickers: {}, updatedThrough: null })),
     getNews().then((n) => n.items).catch(() => []),
   ]);
   return { generatedAt: new Date().toISOString(), ...buildEarnings(filings, news, today) };

@@ -243,11 +243,11 @@ export type EarningsRelease = {
   quarterLabel: string;
   /** Dia da divulgação (AAAA-MM-DD). */
   date: string;
-  /** "cvm": entrega oficial do ITR/DFP; "news": manchete do dia (antes de a CVM atualizar). */
+  /** "cvm": release ou ITR/DFP entregue à CVM; "news": manchete do dia (antes de a CVM atualizar). */
   source: "cvm" | "news";
-  /** Veículo da manchete, quando source = "news". */
+  /** Veículo da manchete (news) ou o documento da CVM ("release na CVM", "ITR na CVM"). */
   sourceName?: string;
-  /** Link da manchete, quando source = "news". */
+  /** Link da manchete (news) ou do documento oficial na CVM (cvm). */
   link?: string;
 };
 

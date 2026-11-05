@@ -25,19 +25,6 @@ export const shortNames: Record<string, string> = {
 };
 
 /**
- * Código CVM de cada empresa, para o selo de "resultado divulgado" ao lado do
- * ticker. Para acompanhar outra empresa, acrescente aqui (o código aparece em
- * dados.cvm.gov.br > Cias Abertas > Cadastro, com zeros à esquerda: 6 dígitos).
- */
-export const cvmCodes: Record<string, string> = {
-  PETR4: "009512", // Petrobras
-  VALE3: "004170", // Vale
-  ITUB4: "019348", // Itaú Unibanco
-  WEGE3: "005410", // WEG
-  BBAS3: "001023", // Banco do Brasil
-};
-
-/**
  * Nomes como aparecem nas manchetes, para achar a notícia do resultado mesmo
  * sem o ticker (ex.: "Itaú lucra R$ 12 bi no 3T26"). Com o nome, a manchete
  * precisa citar o trimestre ("3T26"), para evitar falso alarme.
