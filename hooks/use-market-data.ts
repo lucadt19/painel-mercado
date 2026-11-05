@@ -16,6 +16,7 @@ import type {
   QuotesResponse,
   TreasuryHistoryResponse,
   TreasuryResponse,
+  WatchlistResponse,
 } from "@/lib/types";
 
 /**
@@ -251,6 +252,11 @@ export function useTreasuryHistory(id: string | null) {
     getJson,
     { refreshInterval: 6 * HOUR, revalidateOnFocus: false },
   );
+}
+
+/** Watchlist editável: a lista salva e se este aparelho está logado. */
+export function useWatchlist() {
+  return useSWR<WatchlistResponse>("/api/watchlist", getJson, { revalidateOnFocus: false });
 }
 
 /** Histórico da PTAX de uma moeda: o BC publica o fechamento 1 vez por dia; checa de hora em hora. */

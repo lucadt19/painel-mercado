@@ -33,6 +33,7 @@ export function QuoteTable({
   periodLabel,
   loading,
   failed,
+  pending = [],
 }: {
   title: ReactNode;
   aside?: ReactNode;
@@ -44,6 +45,8 @@ export function QuoteTable({
   loading: boolean;
   /** A requisição inteira falhou (sem nenhum dado na tela). */
   failed: boolean;
+  /** Ativos recém-adicionados, ainda sem cotação. */
+  pending?: string[];
 }) {
   return (
     <section>
@@ -94,6 +97,10 @@ export function QuoteTable({
                         <td className={cn(td, secondary)}><Skeleton className="ml-auto h-6 w-24" /></td>
                       </>
                     ) : null
+                  ) : !item && pending.includes(symbol) ? (
+                    <td colSpan={4} className={cn(td, "text-right text-xs text-muted")}>
+                      Buscando cotação… (pode levar alguns minutos)
+                    </td>
                   ) : !item || !item.ok ? (
                     <td
                       colSpan={4}

@@ -1,6 +1,7 @@
 import "server-only";
-import { cacheLife } from "next/cache";
-import { fxPairs, indices, trackedEtfs, watchlistSymbols, worldStocks } from "@/config/watchlist";
+import { cacheLife, cacheTag } from "next/cache";
+import { fxPairs, indices, trackedEtfs, worldStocks } from "@/config/watchlist";
+import { readWatchlist } from "@/lib/server/watchlist-store";
 import type {
   AssetResponse,
   EarningsResponse,
@@ -39,6 +40,8 @@ import { checkEstimatedQuota, WORLD_REFRESH_SECONDS } from "@/lib/server/quota";
  */
 
 const WEEK = 7 * 24 * 3600;
+/** Marca do cache das cotações (renovada quando a watchlist muda). */
+export const QUOTES_TAG = "quotes";
 const BUILD_WAIT_MSG = "Aguardando a primeira consulta após a publicação.";
 /** Nova tentativa mais cedo quando alguma fonte falhou. */
 const RETRY_SECONDS = 300;
@@ -136,10 +139,13 @@ function withLastGood<T extends { ok: boolean; error?: string; stale?: { error: 
 export async function getQuotes(): Promise<QuotesResponse> {
   "use cache";
   const refresh = serverEnv.quotesRefreshSeconds;
-  checkEstimatedQuota();
 
   // Índices + watchlist + ETFs acompanhados, sem repetir tickers.
   const indexSymbols = indices.map((i) => i.symbol);
+  // A watchlist vem do banco (editável); muda a lista -> revalidateTag(QUOTES_TAG).
+  cacheTag(QUOTES_TAG);
+  const watchlistSymbols = (await readWatchlist()).symbols;
+  checkEstimatedQuota(watchlistSymbols);
   const assetSymbols = [...new Set([...watchlistSymbols, ...trackedEtfs])];
 
   // Na publicação (build), o Next monta as rotas mais de uma vez e em processos

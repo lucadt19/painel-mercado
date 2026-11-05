@@ -19,8 +19,9 @@ export const WORLD_REFRESH_SECONDS = 3600;
 
 const groups = (n: number) => Math.ceil(n / serverEnv.brapiMaxTickersPerRequest);
 
-export function estimateMonthlyCalls() {
-  const quoteSymbols = new Set([...indices.map((i) => i.symbol), ...watchlistSymbols, ...trackedEtfs]);
+/** `watchlist`: a lista em uso (a editável, do banco); padrão = config/watchlist.ts. */
+export function estimateMonthlyCalls(watchlist: string[] = watchlistSymbols) {
+  const quoteSymbols = new Set([...indices.map((i) => i.symbol), ...watchlist, ...trackedEtfs]);
   const b3Rounds = Math.ceil((B3_HOURS_PER_DAY * 3600) / serverEnv.quotesRefreshSeconds);
   const usRounds = Math.ceil((US_HOURS_PER_DAY * 3600) / WORLD_REFRESH_SECONDS);
   const quotes = groups(quoteSymbols.size) * b3Rounds;
@@ -32,8 +33,8 @@ export function estimateMonthlyCalls() {
 let warnedEstimate = false;
 
 /** Avisa no log (uma vez) se a estimativa passar de 80% da cota. */
-export function checkEstimatedQuota() {
-  const estimate = estimateMonthlyCalls();
+export function checkEstimatedQuota(watchlist?: string[]) {
+  const estimate = estimateMonthlyCalls(watchlist);
   const share = estimate / serverEnv.brapiMonthlyQuota;
   if (share > 0.8 && !warnedEstimate) {
     warnedEstimate = true;

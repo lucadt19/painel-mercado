@@ -179,7 +179,7 @@ Um terminal financeiro **calmo**. A densidade de informação de um Bloomberg, c
 
 ## 7. Privacidade e acesso
 
-- **Sem login e sem senha.** O site fica aberto para quem tiver o endereço (decisão de 03/11/2026).
+- **Site aberto para ver, sem login.** Só editar a watchlist pede uma senha (decisão de 05/11/2026; antes, 03/11/2026, não havia login nenhum).
 - Adicionar `robots.txt` bloqueando indexação e `noindex` nas páginas, para mantê-lo fora dos buscadores.
 - Nenhum dado pessoal ou financeiro meu (posições, valores investidos) fica armazenado na v1.
 - Como as rotas `/api/...` ficam públicas, avaliar um limite de requisições nelas para proteger a cota da brapi.
@@ -203,7 +203,7 @@ Ao fim de cada etapa: parar, me mostrar o resultado rodando localmente e esperar
 
 ## 9. Fases futuras (não fazer agora)
 
-- Watchlist editável pela interface (com Supabase).
+- ~~Watchlist editável pela interface~~ (feito em 05/11/2026, com senha única e Upstash Redis).
 - Carteira pessoal com posições e rentabilidade.
 - Alertas de preço por e-mail.
 - Comparador de ativos lado a lado.
@@ -254,7 +254,7 @@ _(Adicionar aqui, com data, cada decisão tomada durante o projeto.)_
 - 04/11/2026: notícias com foto e destaque, a pedido. Foto só do que o feed fornece (`media:content`, `mediaurl` ou a primeira `<img>` do conteúdo que não esteja num link para outra matéria); Folha e Money Times não trazem foto (bloco neutro com o nome do veículo). Destaque = assunto publicado por mais veículos (manchetes com palavras-chave em comum, até 12 h de diferença), com desconto pela idade, e que tenha foto.
 - 04/11/2026: depois de uma falha passageira, as telas consultam de novo em 2,5 min (o servidor responde do cache até tentar a fonte de novo, em 5 min).
 - 04/11/2026: histórico das taxas do Tesouro na Renda Fixa, a pedido: do mesmo CSV oficial (diário desde 2002), por título ainda negociado, via `/api/treasury-history/[id]` (cache de 6 h; a primeira leitura do dia leva ~15 s). Compara a taxa de hoje com média, mínima, máxima e percentil do período (1A/2A/5A/Tudo); clicar num título da tabela abre o histórico. CDB ficou de fora: não há fonte oficial atual e gratuita (a série SGS 28663, taxa média de CDB pós, para em jan/2024).
-- 04/11/2026: selo "Resultado 3T26" ao lado do ticker por 7 dias após a divulgação, a pedido, só para empresas com código CVM em `cvmCodes` (`config/watchlist.ts`). Fontes: data de entrega do ITR/DFP nos dados abertos da CVM (oficial, mas atualizada só 1 vez por semana; zip lido com `lib/server/unzip.ts`, sem dependência) + manchetes do dia (ticker + palavra de resultado; ou nome em `companyAliases` + trimestre explícito, sem ticker de outra empresa, e trimestre plausível para a data). Com os dois para o mesmo trimestre, vale a data da CVM.
+- 04/11/2026 (ampliado em 05/11/2026, ver abaixo): selo "Resultado 3T26" ao lado do ticker por 7 dias após a divulgação, a pedido. Fontes: data de entrega do ITR/DFP nos dados abertos da CVM (oficial, mas atualizada só 1 vez por semana; zip lido com `lib/server/unzip.ts`, sem dependência) + manchetes do dia (ticker + palavra de resultado; ou nome em `companyAliases` + trimestre explícito, sem ticker de outra empresa, e trimestre plausível para a data). Com os dois para o mesmo trimestre, vale a data da CVM.
 - 04/11/2026: comparador de renda fixa, a pedido, como aba da Renda Fixa. Regras em `config/fixed-income.ts` (IR regressivo 22,5/20/17,5/15%; LCI, LCA, CRI, CRA e debêntures incentivadas isentos; custódia B3 0,20% a.a. no Tesouro, Tesouro Selic isento até R$ 10 mil); contas puras em `lib/fixed-income-calc.ts`, testadas à parte. Premissas: CDI/IPCA/Selic constantes (preenchidos do BC, editáveis), % do CDI sobre o CDI diário, Selic efetiva = meta − 0,10, sem IOF, sem cupom. Poupança ficou para depois. Regras conferidas em 04/11/2026: a MP 1.303 caducou e nada mudou na tributação.
 - 04/11/2026: site publicado na Vercel (painel-mercado-eta.vercel.app), com deploy automático a cada push na `main`.
 - 04/11/2026, a pedido:
@@ -273,3 +273,14 @@ _(Adicionar aqui, com data, cada decisão tomada durante o projeto.)_
   - Desdobramentos e grupamentos são detectados pelo salto para um fator exato, com o preço firme no novo patamar. Não são detectados em dias com o BOVA11 variando mais de 4% (ex.: 26/10/2026, após o 2º turno), nem abaixo de R$ 0,10, nem com dois eventos a menos de 15 pregões. É uma estimativa, avisada na página.
   - Índices (Ibovespa, IFIX) não estão no COTAHIST.
 - 03/11/2026: horários e feriados da B3 ficam em `config/b3-calendario.ts`, a partir dos comunicados oficiais da B3; atualizar a cada ano e a cada mudança de horário (horário de verão dos EUA).
+- 05/11/2026, a pedido:
+  - **Selos de resultado para todas as empresas.** Fontes oficiais da CVM (dados abertos, atualizados aos domingos): IPE (releases como "Release de Resultados 3T26", com o link do documento; é o mesmo do site de RI), ITR e DFP. Cada empresa é ligada aos tickers pelo CNPJ, no cadastro FCA.
+  - Ficam de fora prévias, agendas, "datas de divulgação" e documentos de menos de 10 dias após o fim do trimestre.
+  - No mesmo dia, valem as manchetes: um ticker só + palavra de resultado; ou o nome da empresa (`companyAliases` e `config/search-aliases.ts`) + "trimestre"/"3T26", sem outro ticker.
+  - Os sites de RI não são lidos: seria scraping, e o conteúdo é o mesmo da CVM.
+  - **Busca:** casa palavra por palavra com o nome e os apelidos de `config/search-aliases.ts`, expandindo as abreviações da B3 (BCO → banco). Esconde os tickers do fracionário (com F). Botão no cabeçalho de todas as páginas (atalho "/").
+  - **Watchlist editável:**
+    - Lista no Upstash Redis (`KV_REST_API_URL`/`KV_REST_API_TOKEN`, criadas pela Vercel), chave `painel:watchlist:v1`. Sem banco, vale `config/watchlist.ts`; em desenvolvimento sem as variáveis, usa um banco em memória.
+    - Senha única `WATCHLIST_PASSWORD` (na Vercel; a de teste local fica no `.env.local`). Cookie `painel_sessao` assinado com HMAC, 90 dias. Bloqueio de 15 min após 5 erros por IP.
+    - Máximo de 20 ativos, por causa da cota da brapi (~73% dela com 20).
+    - Mudou a lista → `revalidateTag("quotes")` renova as cotações.

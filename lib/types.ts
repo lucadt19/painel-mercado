@@ -184,6 +184,18 @@ export type MacroHistoryResponse = {
   series: Record<MacroIndicator["id"], Result<{ points: SeriesPoint[] }>>;
 };
 
+/** Watchlist editável (/api/watchlist). */
+export type WatchlistResponse = {
+  symbols: string[];
+  /** "banco": lista salva por você; "padrao": a de config/watchlist.ts. */
+  source: "banco" | "padrao";
+  max: number;
+  /** Banco e senha configurados no servidor. */
+  canEdit: boolean;
+  /** Este aparelho está logado. */
+  loggedIn: boolean;
+};
+
 /** Histórico diário da PTAX (venda) de uma moeda, até 5 anos. */
 export type FxHistoryResponse = {
   generatedAt: string;
