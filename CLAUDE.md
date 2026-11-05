@@ -282,5 +282,5 @@ _(Adicionar aqui, com data, cada decisão tomada durante o projeto.)_
   - **Watchlist editável:**
     - Lista no Upstash Redis (`KV_REST_API_URL`/`KV_REST_API_TOKEN`, criadas pela Vercel), chave `painel:watchlist:v1`. Sem banco, vale `config/watchlist.ts`; em desenvolvimento sem as variáveis, usa um banco em memória.
     - Senha única `WATCHLIST_PASSWORD` (na Vercel; a de teste local fica no `.env.local`). Cookie `painel_sessao` assinado com HMAC, 90 dias. Bloqueio de 15 min após 5 erros por IP.
-    - Máximo de 20 ativos, por causa da cota da brapi (~73% dela com 20).
+    - Máximo de 20 ativos, por causa da cota da brapi (~73% dela com 20). Com mais de 15 ativos, a rodada espera vagas no limite de 20/min (até 75 s por chamada; `useCacheTimeout` 130 s e `maxDuration` 120 s em `/api/quotes`).
     - Mudou a lista → `revalidateTag("quotes")` renova as cotações.

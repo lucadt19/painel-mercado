@@ -64,8 +64,14 @@ const recentCalls = (shared.__brapiRecentCalls ??= []);
 /** Períodos de histórico que o plano já recusou: não tentamos de novo (economiza cota). */
 const refusedRanges = (shared.__brapiRefusedRanges ??= new Set());
 
-/** Espera no máximo isto por uma vaga; depois desiste (o Next limita cada rota a 50 s). */
-const MAX_SLOT_WAIT_MS = 8_000;
+/**
+ * Espera no máximo isto por uma vaga; depois desiste. No build o Next limita
+ * cada função a 50 s, então desiste logo. No site no ar, espera a vaga de
+ * verdade: com a watchlist editável (até 20 ativos), uma rodada passa de 15
+ * chamadas e leva ~1,5 min, mas termina completa (a tela mostra os últimos
+ * valores enquanto isso).
+ */
+const MAX_SLOT_WAIT_MS = process.env.NEXT_PHASE === "phase-production-build" ? 8_000 : 75_000;
 const RATE_LIMIT_MSG = "Limite de requisições da brapi atingido.";
 
 async function waitForRateSlot() {
