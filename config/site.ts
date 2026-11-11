@@ -1,5 +1,6 @@
 import {
   ChartLine,
+  GraduationCap,
   Landmark,
   LayoutDashboard,
   Newspaper,
@@ -21,4 +22,5 @@ export const navItems: NavItem[] = [
   { href: "/acoes", label: "Ações & ETFs", shortLabel: "Ações", icon: ChartLine },
   { href: "/renda-fixa", label: "Renda Fixa", shortLabel: "Renda Fixa", icon: Landmark },
   { href: "/noticias", label: "Notícias", shortLabel: "Notícias", icon: Newspaper },
+  { href: "/estudos", label: "Estudos", shortLabel: "Estudos", icon: GraduationCap },
 ];

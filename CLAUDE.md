@@ -297,3 +297,9 @@ _(Adicionar aqui, com data, cada decisão tomada durante o projeto.)_
     - Educação: Me Poupe! e Primo Pobre. O Clube do Valor ficou de fora pelos títulos sensacionalistas.
   - Ficam de fora Shorts, lives e day trade.
   - "Recomendados da semana": vídeos dos últimos 7 dias com mais visualizações por dia em relação à mediana do próprio canal, no máximo 2 por canal. É popularidade, não avaliação.
+- 11/11/2026: página **Estudos** (`/estudos`, 5º item do menu), a pedido: flashcards para entrevistas do mercado financeiro.
+  - 208 perguntas em 15 áreas (fit, carreira, contabilidade, EV, valuation, DCF, M&A, LBO/PE, restructuring, equity research, S&T, renda fixa, asset management, mercado brasileiro e brain teasers), nos níveis básico e avançado, em `data/estudos/` (uma lista por área; acrescentar SEMPRE NO FIM, porque o id é a posição).
+  - Conteúdo escrito para o projeto. O guia "400 IB Questions" (direitos reservados) serviu só de referência de temas e nível; nenhum texto foi copiado.
+  - Pergunta → "Mostrar resposta" → Errei / Mais ou menos / Acertei (atalhos: espaço, 1, 2, 3). Errei volta em 3 cartões; mais ou menos, em 8; acertei sai da rodada.
+  - Nova rodada: primeiro as erradas, depois mais ou menos, novas, acertadas. "Embaralhar" ignora o histórico. Filtro por área ("Variadas" = todas) e por nível.
+  - Progresso no `localStorage` (`painel:estudos:v1`); com login (senha da watchlist), sincronizado no Upstash (mesma chave), juntando aparelhos pelo registro mais recente de cada cartão. Lógica em `lib/study.ts`.

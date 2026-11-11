@@ -24,7 +24,15 @@ async function sendJson(url: string, method: string, body?: unknown) {
   return json;
 }
 
-function LoginForm({ onDone, onCancel }: { onDone: () => void; onCancel: () => void }) {
+export function LoginForm({
+  onDone,
+  onCancel,
+  label = "Senha para editar a watchlist",
+}: {
+  onDone: () => void;
+  onCancel: () => void;
+  label?: string;
+}) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -48,7 +56,7 @@ function LoginForm({ onDone, onCancel }: { onDone: () => void; onCancel: () => v
     >
       <div className="min-w-48 flex-1">
         <label htmlFor="watchlist-senha" className="mb-1 block text-xs text-muted">
-          Senha para editar a watchlist
+          {label}
         </label>
         <input
           id="watchlist-senha"
