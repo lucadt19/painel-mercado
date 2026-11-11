@@ -289,3 +289,11 @@ _(Adicionar aqui, com data, cada decisão tomada durante o projeto.)_
   - Selo "grátis"/"assinante" ao lado da fonte. Mesmo assunto em veículo pago e grátis (3 palavras-chave e 25% de semelhança, até 12 h): fica a versão grátis, e a paga vira o link "também em Folha (assinante)".
   - O destaque continua sendo o assunto mais importante (mais veículos). A preferência pela versão grátis vale só dentro do mesmo assunto, que herda a relevância dele. Sem bônus para grátis, para não passar uma notícia menos importante na frente.
 - 05/11/2026: iene no lugar do IFIX na faixa do topo, a pedido. PTAX do Banco Central com 5 casas (R$ 0,03460), sem custo de cota; histórico em `/cambio/jpy-brl` pela série SGS 21621. Ordem da faixa em `stripOrder`; casas decimais e série de cada moeda em `fxPairs` (`config/watchlist.ts`). Uma chamada a menos à brapi por rodada.
+- 11/11/2026: morning calls, podcasts e vídeos, a pedido, como abas da página Notícias (`/noticias/morning-calls` e `/noticias/videos`), mais o card "Morning calls" na Visão Geral.
+  - Fonte: feed público oficial de cada canal no YouTube (`youtube.com/feeds/videos.xml?channel_id=`), sem chave e sem custo de cota, com cache de 30 min. Só título, canal, horário, miniatura e link; o vídeo abre no YouTube.
+  - Canais em `config/videos.ts`:
+    - Morning calls: BTG Pactual e Genial (só os títulos com "Morning Call"). XP, Itaú BBA e Safra não publicam morning call no YouTube.
+    - Análise: Stock Pickers, Nord Research, Economista Sincero e Investidor Sardinha.
+    - Educação: Me Poupe! e Primo Pobre. O Clube do Valor ficou de fora pelos títulos sensacionalistas.
+  - Ficam de fora Shorts, lives e day trade.
+  - "Recomendados da semana": vídeos dos últimos 7 dias com mais visualizações por dia em relação à mediana do próprio canal, no máximo 2 por canal. É popularidade, não avaliação.

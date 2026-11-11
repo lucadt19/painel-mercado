@@ -11,6 +11,7 @@ import type {
   MacroResponse,
   MarketListResponse,
   NewsResponse,
+  VideosResponse,
   QuoteItem,
   QuotesResponse,
   TreasuryHistoryResponse,
@@ -28,6 +29,7 @@ import {
 import { fetchFxFromPtax, fetchFxHistory, fetchMacroHistory, fetchMacroIndicators } from "@/lib/server/bcb";
 import { fetchTreasuryAll, TESOURO_SOURCE } from "@/lib/server/tesouro";
 import { fetchNews } from "@/lib/server/news";
+import { fetchVideos } from "@/lib/server/videos";
 import { buildEarnings, fetchCvmData } from "@/lib/server/earnings";
 import { closeOnOrBefore, loadB3History, mergeHistory } from "@/lib/server/b3-history";
 import { errorMessage, isTransientError } from "@/lib/server/http";
@@ -321,6 +323,15 @@ export async function getNews(): Promise<NewsResponse> {
   "use cache";
   cacheLife({ stale: 300, revalidate: 300, expire: WEEK });
   return { generatedAt: new Date().toISOString(), ...(await fetchNews()) };
+}
+
+/** Vídeos do YouTube (morning calls, podcasts, educação): renovados a cada 30 min. */
+export async function getVideos(): Promise<VideosResponse> {
+  "use cache";
+  const result = await fetchVideos();
+  const anyFailed = result.channels.some((c) => !c.ok);
+  cacheLife({ stale: anyFailed ? RETRY_SECONDS : 1800, revalidate: anyFailed ? RETRY_SECONDS : 1800, expire: WEEK });
+  return { generatedAt: new Date().toISOString(), ...result };
 }
 
 /** Histórico de um título (página Renda Fixa). */

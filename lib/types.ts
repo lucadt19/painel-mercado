@@ -184,6 +184,29 @@ export type MacroHistoryResponse = {
   series: Record<MacroIndicator["id"], Result<{ points: SeriesPoint[] }>>;
 };
 
+// ---------- Vídeos (YouTube) ----------
+
+export type VideoItem = {
+  videoId: string;
+  title: string;
+  channelId: string;
+  channelName: string;
+  kind: "morning" | "analise" | "educacao";
+  /** Horário de publicação informado pelo YouTube (ISO). */
+  publishedAt: string;
+  link: string;
+  thumbnail: string;
+  /** Visualizações no momento da consulta (o feed informa). */
+  views: number;
+};
+
+export type VideosResponse = {
+  generatedAt: string;
+  channels: ({ id: string; name: string } & Result<{ count: number }>)[];
+  /** Mais recentes primeiro. */
+  items: VideoItem[];
+};
+
 /** Watchlist editável (/api/watchlist). */
 export type WatchlistResponse = {
   symbols: string[];

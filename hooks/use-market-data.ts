@@ -16,6 +16,7 @@ import type {
   QuotesResponse,
   TreasuryHistoryResponse,
   TreasuryResponse,
+  VideosResponse,
   WatchlistResponse,
 } from "@/lib/types";
 
@@ -252,6 +253,11 @@ export function useTreasuryHistory(id: string | null) {
     getJson,
     { refreshInterval: 6 * HOUR, revalidateOnFocus: false },
   );
+}
+
+/** Vídeos do YouTube: a cada 30 min com a aba visível. */
+export function useVideos() {
+  return useSWR<VideosResponse>("/api/videos", getJson, { refreshInterval: 30 * 60 * 1000, revalidateOnFocus: false });
 }
 
 /** Watchlist editável: a lista salva e se este aparelho está logado. */

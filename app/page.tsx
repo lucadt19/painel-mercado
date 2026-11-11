@@ -3,6 +3,7 @@ import { WatchlistTable } from "@/components/overview/watchlist-table";
 import { FixedIncomeCards } from "@/components/overview/fixed-income-cards";
 import { Headlines } from "@/components/overview/headlines";
 import { StatusFooter } from "@/components/overview/status-footer";
+import { MorningCallsCard } from "@/components/videos/videos-views";
 
 export default function VisaoGeralPage() {
   return (
@@ -15,6 +16,7 @@ export default function VisaoGeralPage() {
         </div>
         <div className="flex flex-col gap-8">
           <FixedIncomeCards />
+          <MorningCallsCard />
           <Headlines />
         </div>
       </div>
