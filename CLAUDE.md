@@ -303,3 +303,15 @@ _(Adicionar aqui, com data, cada decisão tomada durante o projeto.)_
   - Pergunta → "Mostrar resposta" → Errei / Mais ou menos / Acertei (atalhos: espaço, 1, 2, 3). Errei volta em 3 cartões; mais ou menos, em 8; acertei sai da rodada.
   - Nova rodada: primeiro as erradas, depois mais ou menos, novas, acertadas. "Embaralhar" ignora o histórico. Filtro por área ("Variadas" = todas) e por nível.
   - Progresso no `localStorage` (`painel:estudos:v1`); com login (senha da watchlist), sincronizado no Upstash (mesma chave), juntando aparelhos pelo registro mais recente de cada cartão. Lógica em `lib/study.ts`.
+- 12/11/2026: **Questões e Simulado** em Estudos, a pedido (abas Flashcards | Questões | Simulado: `/estudos`, `/estudos/questoes`, `/estudos/simulado`).
+  - 151 questões de múltipla escolha em `data/questoes/`, com 5 alternativas e gabarito comentado:
+    - Mercado financeiro (91): contabilidade/DFC, valuation, DCF, M&A, crédito, renda fixa e matemática financeira, macro, história e atualidades.
+    - GMAT (60, em inglês, gabarito em português): Quantitative, Data Insights (Data Sufficiency e tabelas), Critical Reasoning e Reading Comprehension. No formato do GMAT Focus, sem copiar questões oficiais.
+    - Os exemplos enviados pelo dono serviram de modelo e entraram adaptados, com redação e números próprios.
+  - `data/questoes/_mk.ts` distribui a letra certa entre A–E e troca junto as letras citadas na explicação; Data Sufficiency (`fixed`) mantém a ordem padrão.
+  - Treino: uma questão por vez, gabarito na hora. As erradas voltam em 5 questões e vêm primeiro na próxima rodada. Filtros por prova, tema e nível.
+  - Simulado: Mercado, GMAT ou Misto, sempre 30 questões em 60 minutos (`SIMULADO_SIZE`/`SIMULADO_MINUTES`), sem gabarito durante a prova.
+    - Navegação, "marcar para revisar" e entrega antecipada com confirmação; entrega sozinho no fim do tempo.
+    - Sobrevive a recarregar a página (`localStorage`, `painel:simulado-ativo:v1`).
+    - Resultado com nota, desempenho por tema, tempo e revisão comentada. Prefere questões que você fez menos.
+  - Progresso e histórico de simulados no aparelho (`painel:questoes:v1`); com login, sincronizados (`/api/estudos/questoes`). Lógica em `lib/quiz.ts`.
