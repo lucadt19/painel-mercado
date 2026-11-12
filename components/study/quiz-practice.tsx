@@ -194,7 +194,7 @@ function Practice() {
       )}
 
       <p className="text-xs text-muted">
-        {loggedIn ? (syncNote ?? "Progresso sincronizado entre seus aparelhos.") : "Progresso salvo neste aparelho. Entre com a senha (na aba Flashcards) para sincronizar."}{" "}
+        {loggedIn ? (syncNote ?? "Progresso sincronizado entre seus aparelhos.") : "Progresso salvo neste aparelho. Entre com a senha (no fim da seção Entrevistas) para sincronizar."}{" "}
         Questões escritas para este painel; as de GMAT seguem o formato da prova, sem copiar questões oficiais.
       </p>
     </div>

@@ -8,7 +8,7 @@ export const metadata: Metadata = { title: "Questões" };
 export default function QuestoesPage() {
   return (
     <>
-      <PageHeader title="Estudos" description="Questões de múltipla escolha de mercado financeiro e GMAT, com gabarito comentado." />
+      <PageHeader title="Estudos" description="Preparação para provas: questões de múltipla escolha de GMAT e mercado financeiro, com gabarito comentado." />
       <StudyTabs active="questoes" />
       <QuizPractice />
     </>

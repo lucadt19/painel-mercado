@@ -10,9 +10,9 @@ export default function EstudosPage() {
     <>
       <PageHeader
         title="Estudos"
-        description="Flashcards para entrevistas do mercado financeiro: pense na resposta, confira e marque como foi."
+        description="Preparação para entrevistas: flashcards de perguntas técnicas e comportamentais. Pense na resposta, confira e marque como foi."
       />
-      <StudyTabs active="flashcards" />
+      <StudyTabs active="entrevistas" />
       <StudyView />
     </>
   );

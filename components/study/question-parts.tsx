@@ -171,23 +171,37 @@ export function Explanation({ question }: { question: Question }) {
   );
 }
 
-const TABS = [
-  { id: "flashcards", label: "Flashcards", href: "/estudos" },
-  { id: "questoes", label: "Questões", href: "/estudos/questoes" },
-  { id: "simulado", label: "Simulado", href: "/estudos/simulado" },
+const SECTIONS = [
+  { id: "entrevistas", label: "Entrevistas", href: "/estudos" },
+  { id: "provas", label: "Provas (GMAT e mercado)", href: "/estudos/provas" },
 ] as const;
 
-/** Abas da página Estudos: cada uma é uma página. */
-export function StudyTabs({ active }: { active: (typeof TABS)[number]["id"] }) {
+const EXAM_TABS = [
+  { id: "questoes", label: "Questões", href: "/estudos/provas" },
+  { id: "simulado", label: "Simulado (1 h)", href: "/estudos/provas/simulado" },
+] as const;
+
+function TabLinks<T extends { id: string; label: string; href: string }>({
+  tabs,
+  active,
+  label,
+  small,
+}: {
+  tabs: readonly T[];
+  active: T["id"];
+  label: string;
+  small?: boolean;
+}) {
   return (
-    <nav aria-label="Seções de Estudos" className="mb-6 flex gap-1 overflow-x-auto border-b border-border">
-      {TABS.map((t) => (
+    <nav aria-label={label} className={cn("flex gap-1 overflow-x-auto border-b border-border", small ? "mb-5" : "mb-4")}>
+      {tabs.map((t) => (
         <Link
           key={t.id}
           href={t.href}
           aria-current={active === t.id ? "page" : undefined}
           className={cn(
-            "-mb-px shrink-0 border-b-2 px-3 py-2 text-sm transition-colors",
+            "-mb-px shrink-0 border-b-2 px-3 transition-colors",
+            small ? "py-1.5 text-xs" : "py-2 text-sm",
             active === t.id ? "border-accent font-medium text-text" : "border-transparent text-muted hover:text-text",
           )}
         >
@@ -195,5 +209,20 @@ export function StudyTabs({ active }: { active: (typeof TABS)[number]["id"] }) {
         </Link>
       ))}
     </nav>
+  );
+}
+
+/**
+ * Navegação da página Estudos: duas seções separadas.
+ * - Entrevistas: flashcards de perguntas de entrevista.
+ * - Provas: questões de múltipla escolha e simulados (GMAT e mercado).
+ */
+export function StudyTabs({ active }: { active: "entrevistas" | (typeof EXAM_TABS)[number]["id"] }) {
+  const section = active === "entrevistas" ? "entrevistas" : "provas";
+  return (
+    <>
+      <TabLinks tabs={SECTIONS} active={section} label="Seções de Estudos" />
+      {active !== "entrevistas" && <TabLinks tabs={EXAM_TABS} active={active} label="Provas" small />}
+    </>
   );
 }

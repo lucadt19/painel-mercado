@@ -303,7 +303,7 @@ _(Adicionar aqui, com data, cada decisão tomada durante o projeto.)_
   - Pergunta → "Mostrar resposta" → Errei / Mais ou menos / Acertei (atalhos: espaço, 1, 2, 3). Errei volta em 3 cartões; mais ou menos, em 8; acertei sai da rodada.
   - Nova rodada: primeiro as erradas, depois mais ou menos, novas, acertadas. "Embaralhar" ignora o histórico. Filtro por área ("Variadas" = todas) e por nível.
   - Progresso no `localStorage` (`painel:estudos:v1`); com login (senha da watchlist), sincronizado no Upstash (mesma chave), juntando aparelhos pelo registro mais recente de cada cartão. Lógica em `lib/study.ts`.
-- 12/11/2026: **Questões e Simulado** em Estudos, a pedido (abas Flashcards | Questões | Simulado: `/estudos`, `/estudos/questoes`, `/estudos/simulado`).
+- 12/11/2026: **Questões e Simulado** em Estudos, a pedido. Estudos tem duas seções separadas (pedido do dono: entrevista e prova são coisas diferentes, não misturar): **Entrevistas** (`/estudos`, flashcards) e **Provas (GMAT e mercado)**, com as sub-abas Questões (`/estudos/provas`) e Simulado (`/estudos/provas/simulado`). Os bancos de dados também são separados (`data/estudos/` e `data/questoes/`).
   - 151 questões de múltipla escolha em `data/questoes/`, com 5 alternativas e gabarito comentado:
     - Mercado financeiro (91): contabilidade/DFC, valuation, DCF, M&A, crédito, renda fixa e matemática financeira, macro, história e atualidades.
     - GMAT (60, em inglês, gabarito em português): Quantitative, Data Insights (Data Sufficiency e tabelas), Critical Reasoning e Reading Comprehension. No formato do GMAT Focus, sem copiar questões oficiais.

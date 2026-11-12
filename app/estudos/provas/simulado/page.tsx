@@ -8,7 +8,7 @@ export const metadata: Metadata = { title: "Simulado" };
 export default function SimuladoPage() {
   return (
     <>
-      <PageHeader title="Estudos" description="Simulados de 1 hora com cronômetro, nota por tema e revisão comentada." />
+      <PageHeader title="Estudos" description="Preparação para provas: simulados de 1 hora com cronômetro, nota por tema e revisão comentada." />
       <StudyTabs active="simulado" />
       <QuizSimulado />
     </>
