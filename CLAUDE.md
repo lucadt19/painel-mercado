@@ -315,3 +315,7 @@ _(Adicionar aqui, com data, cada decisão tomada durante o projeto.)_
     - Sobrevive a recarregar a página (`localStorage`, `painel:simulado-ativo:v1`).
     - Resultado com nota, desempenho por tema, tempo e revisão comentada. Prefere questões que você fez menos.
   - Progresso e histórico de simulados no aparelho (`painel:questoes:v1`); com login, sincronizados (`/api/estudos/questoes`). Lógica em `lib/quiz.ts`.
+- 13/11/2026: imagens vazias, a pedido.
+  - Logos: as iniciais do ticker aparecem desde o início e o logo surge por cima ao carregar (sem `loading="lazy"`; são SVGs de 1–2 KB). Antes, o quadrado branco aparecia até o logo carregar e, com lazy loading, às vezes nunca carregava.
+  - Notícias sem foto (Folha e Money Times não mandam foto no feed): card só de texto, com a manchete maior, em vez do bloco cinza. Nas listas, sem miniatura.
+  - Conferido: dos 300 maiores tickers, só 10 não têm logo na brapi (404) e nenhum vem em branco.

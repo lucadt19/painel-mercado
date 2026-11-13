@@ -48,7 +48,7 @@ export function NewsList({
             rel="noopener noreferrer"
             className="group flex items-start gap-3 px-4 py-3 transition-colors hover:bg-surface-hover"
           >
-            {withImages && <NewsImage item={n} className="h-14 w-20 shrink-0 rounded-md text-[0.6rem]" />}
+            {withImages && <NewsImage item={n} fallback="none" className="h-14 w-20 shrink-0 rounded-md" />}
             <span className="flex min-w-0 flex-col gap-1">
               <span className="text-sm leading-snug group-hover:text-accent">{n.title}</span>
               <span className="flex flex-wrap items-center gap-x-2 text-xs text-muted">

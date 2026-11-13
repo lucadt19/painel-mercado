@@ -9,14 +9,27 @@ import { cn } from "@/lib/utils";
 
 /**
  * Foto da matéria, como fornecida no feed do veículo (fica hospedada no site
- * dele; não guardamos cópia). Sem foto, ou se ela não carregar, mostra um
- * bloco neutro com o nome do veículo.
+ * dele; não guardamos cópia). Sem foto, ou se ela não carregar: com
+ * `fallback="block"`, um bloco neutro com o nome do veículo; com "none",
+ * nada (o texto ocupa o espaço). Folha e Money Times não mandam foto no feed.
  */
-export function NewsImage({ item, className }: { item: NewsItem; className?: string }) {
+export function NewsImage({
+  item,
+  className,
+  fallback = "block",
+  onMissing,
+}: {
+  item: NewsItem;
+  className?: string;
+  fallback?: "block" | "none";
+  /** Avisa quando a foto não existe ou não carregou. */
+  onMissing?: () => void;
+}) {
   const [failedFor, setFailedFor] = useState<string | null>(null);
   const src = item.image && failedFor !== item.image ? item.image : null;
 
   if (!src) {
+    if (fallback === "none") return null;
     return (
       <div
         aria-hidden
@@ -34,7 +47,10 @@ export function NewsImage({ item, className }: { item: NewsItem; className?: str
       loading="lazy"
       decoding="async"
       referrerPolicy="no-referrer"
-      onError={() => setFailedFor(src)}
+      onError={() => {
+        setFailedFor(src);
+        onMissing?.();
+      }}
       className={cn("object-cover", className)}
     />
   );
@@ -149,18 +165,33 @@ export function FeaturedNews({ item }: { item: NewsItem }) {
   );
 }
 
-/** Card menor: foto em cima, manchete e veículo embaixo. */
+/**
+ * Card menor: foto em cima, manchete e veículo embaixo. Sem foto (o feed não
+ * manda, ou ela não carregou), vira um card só de texto, com a manchete maior,
+ * em vez de um bloco vazio.
+ */
 export function NewsCard({ item }: { item: NewsItem }) {
+  const [failedFor, setFailedFor] = useState<string | null>(null);
+  const hasImage = !!item.image && failedFor !== item.image;
   return (
     <a
       href={item.link}
       {...linkProps}
       className="group flex w-full flex-col overflow-hidden rounded-card border border-border bg-surface transition-colors hover:bg-surface-hover"
     >
-      <NewsImage item={item} className="aspect-video w-full" />
-      <div className="flex flex-1 flex-col gap-2 p-3">
+      {hasImage && (
+        <NewsImage item={item} className="aspect-video w-full" onMissing={() => setFailedFor(item.image)} />
+      )}
+      <div className={cn("flex flex-1 flex-col gap-2", hasImage ? "p-3" : "p-4")}>
         <ThemePill item={item} />
-        <h3 className="line-clamp-3 text-sm leading-snug font-medium group-hover:text-accent">{item.title}</h3>
+        <h3
+          className={cn(
+            "leading-snug font-medium group-hover:text-accent",
+            hasImage ? "line-clamp-3 text-sm" : "line-clamp-5 text-base",
+          )}
+        >
+          {item.title}
+        </h3>
         <div className="mt-auto flex flex-col gap-1">
           <Meta item={item} />
           <AlsoIn item={item} />
