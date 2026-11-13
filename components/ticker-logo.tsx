@@ -1,7 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import { worldStocks } from "@/config/watchlist";
 import { cn } from "@/lib/utils";
+
+/**
+ * Empresas da aba Mundo: a brapi não tem logo para vários tickers americanos
+ * (NVDA, GOOGL, AMZN dão 404), mas tem para o BDR da mesma empresa na B3
+ * (NVDC34, GOGL34, AMZO34). Usa sempre o logo do BDR.
+ */
+const logoAlias: Record<string, string> = Object.fromEntries(
+  worldStocks.filter((w) => w.bdr).map((w) => [w.symbol, w.bdr!]),
+);
 
 /**
  * Logo da empresa ao lado do ticker, do serviço de ícones da brapi
@@ -42,7 +52,7 @@ export function TickerLogo({
         // sumiriam no tema escuro. <img> simples: SVGs pequenos de outro domínio.
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={`https://icons.brapi.dev/icons/${encodeURIComponent(symbol)}.svg`}
+          src={`https://icons.brapi.dev/icons/${encodeURIComponent(logoAlias[symbol] ?? symbol)}.svg`}
           alt=""
           width={size}
           height={size}
