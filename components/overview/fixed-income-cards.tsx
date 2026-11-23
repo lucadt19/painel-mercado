@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { treasuryReference } from "@/config/watchlist";
-import { useMacro, useTreasury } from "@/hooks/use-market-data";
-import { formatDate, formatMacroDate, formatNumber } from "@/lib/format";
+import { useMacro, useTreasury, useUsMacro } from "@/hooks/use-market-data";
+import { formatDate, formatMacroDate, formatNumber, formatPercent } from "@/lib/format";
 import type { MacroIndicator } from "@/lib/types";
 import { Card, SectionTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -78,6 +78,7 @@ export function FixedIncomeCards() {
       >
         <span id="renda-fixa-title">Renda fixa</span>
       </SectionTitle>
+      <h3 className="mb-2 text-xs text-muted">Brasil</h3>
       <div className="grid grid-cols-2 gap-3">
         {MACRO_IDS.map((id) => {
           const item = macro.data?.items.find((i) => i.id === id);
@@ -130,6 +131,54 @@ export function FixedIncomeCards() {
           />
         )}
       </div>
+      <UsCards />
     </section>
+  );
+}
+
+/** EUA: faixa-alvo dos juros do Fed e inflação CPI em 12 meses (FRED). */
+function UsCards() {
+  const us = useUsMacro();
+  const fedLabel = "Juros do Fed (faixa-alvo)";
+  const cpiLabel = "Inflação CPI 12 meses";
+
+  return (
+    <>
+      <h3 className="mt-4 mb-2 text-xs text-muted">Estados Unidos</h3>
+      <div className="grid grid-cols-2 gap-3">
+        {!us.data ? (
+          <>
+            <RateCard label={fedLabel} loading={!us.error} error={us.error ? "Falha ao buscar dados" : undefined} />
+            <RateCard label={cpiLabel} loading={!us.error} error={us.error ? "Falha ao buscar dados" : undefined} />
+          </>
+        ) : (
+          <>
+            {us.data.fed.ok ? (
+              <RateCard
+                label={fedLabel}
+                value={`${formatNumber(us.data.fed.lower)}–${formatNumber(us.data.fed.upper)}%`}
+                unit="a.a."
+                date={formatMacroDate(us.data.fed.since, "since")}
+              />
+            ) : (
+              <RateCard label={fedLabel} error={us.data.fed.error} />
+            )}
+            {us.data.cpi.ok ? (
+              <RateCard
+                label={cpiLabel}
+                value={`${formatNumber(us.data.cpi.yoy)}%`}
+                date={`${formatMacroDate(us.data.cpi.referenceMonth, "month")}${
+                  us.data.cpi.mom !== null
+                    ? ` · ${formatMacroDate(us.data.cpi.momMonth, "month").replace("referente a ", "")}: ${formatPercent(us.data.cpi.mom)} no mês`
+                    : ""
+                }`}
+              />
+            ) : (
+              <RateCard label={cpiLabel} error={us.data.cpi.error} />
+            )}
+          </>
+        )}
+      </div>
+    </>
   );
 }

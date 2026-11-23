@@ -16,6 +16,7 @@ import type {
   QuotesResponse,
   TreasuryHistoryResponse,
   TreasuryResponse,
+  UsMacroResponse,
   VideosResponse,
   WatchlistResponse,
 } from "@/lib/types";
@@ -253,6 +254,11 @@ export function useTreasuryHistory(id: string | null) {
     getJson,
     { refreshInterval: 6 * HOUR, revalidateOnFocus: false },
   );
+}
+
+/** Juros e inflação dos EUA: mudam no máximo 1 vez por dia; checa de hora em hora. */
+export function useUsMacro() {
+  return useSWR<UsMacroResponse>("/api/us-macro", getJson, { refreshInterval: HOUR, revalidateOnFocus: false });
 }
 
 /** Vídeos do YouTube: a cada 30 min com a aba visível. */

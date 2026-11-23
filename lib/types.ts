@@ -184,6 +184,22 @@ export type MacroHistoryResponse = {
   series: Record<MacroIndicator["id"], Result<{ points: SeriesPoint[] }>>;
 };
 
+// ---------- EUA: juros e inflação (FRED) ----------
+
+export type UsMacroResponse = {
+  generatedAt: string;
+  source: string;
+  /** Faixa-alvo dos Fed Funds, em % a.a.; `since` = data da decisão que a definiu. */
+  fed: Result<{ lower: number; upper: number; since: string; asOf: string }>;
+  /** CPI: variação em 12 meses e no mês, em %; `referenceMonth` = AAAA-MM-01. */
+  /**
+   * CPI: variação em 12 meses (`yoy`, do mês `referenceMonth`) e no mês mais
+   * recente (`mom`, de `momMonth`). Podem ser meses diferentes quando falta o
+   * índice de um ano antes (ex.: out/2025, não coletado).
+   */
+  cpi: Result<{ yoy: number; referenceMonth: string; mom: number | null; momMonth: string }>;
+};
+
 // ---------- Vídeos (YouTube) ----------
 
 export type VideoItem = {

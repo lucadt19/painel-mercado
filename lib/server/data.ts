@@ -12,6 +12,7 @@ import type {
   MarketListResponse,
   NewsResponse,
   VideosResponse,
+  UsMacroResponse,
   QuoteItem,
   QuotesResponse,
   TreasuryHistoryResponse,
@@ -30,6 +31,7 @@ import { fetchFxFromPtax, fetchFxHistory, fetchMacroHistory, fetchMacroIndicator
 import { fetchTreasuryAll, TESOURO_SOURCE } from "@/lib/server/tesouro";
 import { fetchNews } from "@/lib/server/news";
 import { fetchVideos } from "@/lib/server/videos";
+import { fetchUsMacro } from "@/lib/server/fred";
 import { buildEarnings, fetchCvmData } from "@/lib/server/earnings";
 import { closeOnOrBefore, loadB3History, mergeHistory } from "@/lib/server/b3-history";
 import { errorMessage, isTransientError } from "@/lib/server/http";
@@ -323,6 +325,15 @@ export async function getNews(): Promise<NewsResponse> {
   "use cache";
   cacheLife({ stale: 300, revalidate: 300, expire: WEEK });
   return { generatedAt: new Date().toISOString(), ...(await fetchNews()) };
+}
+
+/** Juros (Fed) e inflação (CPI) dos EUA: mudam no máximo 1 vez por dia; renovados a cada 6 h. */
+export async function getUsMacro(): Promise<UsMacroResponse> {
+  "use cache";
+  const result = await fetchUsMacro();
+  const failed = !result.fed.ok || !result.cpi.ok;
+  cacheLife({ stale: failed ? RETRY_SECONDS : 3600, revalidate: failed ? RETRY_SECONDS : 6 * 3600, expire: WEEK });
+  return { generatedAt: new Date().toISOString(), ...result };
 }
 
 /** Vídeos do YouTube (morning calls, podcasts, educação): renovados a cada 30 min. */

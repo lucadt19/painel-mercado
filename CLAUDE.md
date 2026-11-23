@@ -320,3 +320,8 @@ _(Adicionar aqui, com data, cada decisão tomada durante o projeto.)_
   - Notícias sem foto (Folha e Money Times não mandam foto no feed): card só de texto, com a manchete maior, em vez do bloco cinza. Nas listas, sem miniatura.
   - Conferido: dos 300 maiores tickers, só 10 não têm logo na brapi (404) e nenhum vem em branco.
   - Aba Mundo: a brapi não tem logo para 16 dos 25 tickers americanos (NVDA, GOOGL, AMZN...), mas tem para todos os BDRs; o logo usa o BDR de `worldStocks`.
+- 23/11/2026: juros e inflação dos EUA na Visão Geral, a pedido. Os cards de renda fixa agora têm duas linhas: "Brasil" (como antes) e "Estados Unidos".
+  - Fonte: FRED (Fed de St. Louis), CSV público sem chave, via `/api/us-macro`; cache de 6 h. O FRED recusa pedidos sem User-Agent.
+  - **Juros do Fed:** faixa-alvo, séries DFEDTARL/DFEDTARU, com "vigente desde" a última decisão do FOMC.
+  - **Inflação CPI 12 meses:** CPIAUCNS, o CPI-U do BLS sem ajuste sazonal, que é o número divulgado na imprensa.
+  - O índice de out/2025 não existe: não foi coletado por causa do shutdown do governo americano. Por isso o card mostra os 12 meses do último mês calculável (set/2026) e a variação no mês mais recente (out/2026). Nada é estimado.
