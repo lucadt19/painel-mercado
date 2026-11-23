@@ -3,10 +3,11 @@
 import { useState } from "react";
 import { useSWRConfig } from "swr";
 import { Pencil, X } from "lucide-react";
-import { shortNames } from "@/config/watchlist";
-import { useQuotes, useWatchlist } from "@/hooks/use-market-data";
+import { shortNames, worldStocks } from "@/config/watchlist";
+import { useQuotes, useWatchlist, useWorld, watchlistKey } from "@/hooks/use-market-data";
 import type { WatchlistResponse } from "@/lib/types";
 import { Card } from "@/components/ui/card";
+import { Segmented } from "@/components/ui/segmented";
 import { AssetSearch } from "@/components/market/asset-search";
 import { periodLabelFor, QuoteTable } from "@/components/market/quote-table";
 
@@ -82,25 +83,37 @@ export function LoginForm({
   );
 }
 
-function Editor({ list, onDone }: { list: WatchlistResponse; onDone: () => void }) {
+
+type Market = "br" | "intl";
+
+const worldNames = Object.fromEntries(worldStocks.map((w) => [w.symbol, w.name]));
+
+/** Por mercado: de onde vêm as cotações e como buscar ativos para adicionar. */
+const MARKET = {
+  br: { quotesKey: "/api/quotes", placeholder: "Adicionar ativo: ticker ou nome (ex.: Sabesp, BOVA11)" },
+  intl: { quotesKey: "/api/world", placeholder: "Adicionar ação americana: ticker ou nome (ex.: KO, Nvidia)" },
+} as const;
+
+function Editor({ market, list, onDone }: { market: Market; list: WatchlistResponse; onDone: () => void }) {
   const { mutate } = useSWRConfig();
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const full = list.symbols.length >= list.max;
+  const key = watchlistKey(market);
 
   const save = async (symbols: string[]) => {
     setSaving(true);
     setError(null);
     const previous = list;
     // Mostra a mudança na hora; volta atrás se o servidor recusar.
-    await mutate("/api/watchlist", { ...list, symbols, source: "banco" }, { revalidate: false });
+    await mutate(key, { ...list, symbols, source: "banco" }, { revalidate: false });
     try {
-      await sendJson("/api/watchlist", "PUT", { symbols });
+      await sendJson(key, "PUT", { symbols });
       // As cotações dos ativos novos chegam quando o servidor renova o cache.
-      mutate("/api/quotes");
-      setTimeout(() => mutate("/api/quotes"), 15_000);
+      mutate(MARKET[market].quotesKey);
+      setTimeout(() => mutate(MARKET[market].quotesKey), 15_000);
     } catch (err) {
-      await mutate("/api/watchlist", previous, { revalidate: false });
+      await mutate(key, previous, { revalidate: false });
       setError((err as Error).message);
     } finally {
       setSaving(false);
@@ -127,17 +140,21 @@ function Editor({ list, onDone }: { list: WatchlistResponse; onDone: () => void 
       </div>
       {full ? (
         <p className="text-xs text-muted">
-          A watchlist está cheia ({list.max} ativos, limite da cota da brapi). Tire um ativo para adicionar outro.
+          {market === "intl"
+            ? `A watchlist internacional está cheia (${list.max} ativos, o que o plano atual da brapi cota de hora em hora). Tire um para adicionar outro.`
+            : `A watchlist está cheia (${list.max} ativos, limite da cota da brapi). Tire um ativo para adicionar outro.`}
         </p>
       ) : (
         <AssetSearch
-          onlyB3
-          placeholder="Adicionar ativo: ticker ou nome (ex.: Sabesp, BOVA11)"
+          onlyB3={market === "br"}
+          onlyWorld={market === "intl"}
+          placeholder={MARKET[market].placeholder}
           onSelect={(item) => {
             if (!list.symbols.includes(item.symbol)) save([...list.symbols, item.symbol]);
           }}
         />
       )}
+      {saving && <p className="text-xs text-muted">Salvando…</p>}
       {error && (
         <p role="alert" className="text-xs text-down">
           {error}
@@ -152,7 +169,7 @@ function Editor({ list, onDone }: { list: WatchlistResponse; onDone: () => void 
             type="button"
             onClick={async () => {
               await sendJson("/api/watchlist/logout", "POST").catch(() => {});
-              await mutate("/api/watchlist");
+              await Promise.all([mutate(watchlistKey("br")), mutate(watchlistKey("intl"))]);
               onDone();
             }}
             className="hover:text-text"
@@ -168,17 +185,24 @@ function Editor({ list, onDone }: { list: WatchlistResponse; onDone: () => void 
   );
 }
 
-export function WatchlistTable() {
-  const { data, error } = useQuotes();
-  const watchlist = useWatchlist();
+/** Tabela + edição de um mercado. */
+function MarketWatchlist({ market, tabs }: { market: Market; tabs: React.ReactNode }) {
+  const quotes = useQuotes();
+  const world = useWorld();
+  const watchlist = useWatchlist(market);
   const { mutate } = useSWRConfig();
   const [mode, setMode] = useState<"view" | "login" | "edit">("view");
+
+  const br = market === "br";
+  const data = br ? quotes.data : world.data;
+  const error = br ? quotes.error : world.error;
+  const items = br ? quotes.data?.watchlist : world.data?.items;
   const periodLabel = periodLabelFor(data?.historyRange);
 
   const list = watchlist.data;
   // Ordem: a lista salva; enquanto ela carrega, a das cotações.
-  const symbols = list?.symbols ?? data?.watchlist.map((i) => i.symbol) ?? [];
-  const quoted = new Set(data?.watchlist.map((i) => i.symbol));
+  const symbols = list?.symbols ?? items?.map((i) => i.symbol) ?? [];
+  const quoted = new Set(items?.map((i) => i.symbol));
   const pending = symbols.filter((s) => !quoted.has(s));
 
   const editButton = list?.canEdit && mode === "view" && (
@@ -190,16 +214,24 @@ export function WatchlistTable() {
   return (
     <div className="flex flex-col gap-3">
       <QuoteTable
-        title="Minha watchlist"
+        title={
+          <span className="flex flex-wrap items-center gap-3">
+            Minha watchlist {tabs}
+          </span>
+        }
         aside={
           <span className="flex items-center gap-3">
-            {data && <span>Variação no período: {periodLabel}</span>}
+            {data && (
+              <span>
+                {br ? "" : "Em dólar · de hora em hora · "}Variação no período: {periodLabel}
+              </span>
+            )}
             {editButton}
           </span>
         }
         symbols={symbols}
-        items={data?.watchlist}
-        names={shortNames}
+        items={items}
+        names={br ? shortNames : worldNames}
         periodLabel={periodLabel}
         loading={!data && !error}
         failed={!data && !!error}
@@ -211,15 +243,33 @@ export function WatchlistTable() {
             <LoginForm
               onCancel={() => setMode("view")}
               onDone={async () => {
-                await mutate("/api/watchlist");
+                await Promise.all([mutate(watchlistKey("br")), mutate(watchlistKey("intl"))]);
                 setMode("edit");
               }}
             />
           ) : (
-            <Editor list={list} onDone={() => setMode("view")} />
+            <Editor market={market} list={list} onDone={() => setMode("view")} />
           )}
         </Card>
       )}
     </div>
   );
+}
+
+/** Watchlist da Visão Geral: abas Brasil e Internacional. */
+export function WatchlistTable() {
+  const [market, setMarket] = useState<Market>("br");
+  const tabs = (
+    <Segmented
+      label="Mercado da watchlist"
+      value={market}
+      onChange={setMarket}
+      options={[
+        { value: "br", label: "Brasil" },
+        { value: "intl", label: "Internacional" },
+      ]}
+    />
+  );
+  // `key`: cada mercado com seu próprio estado de edição.
+  return <MarketWatchlist key={market} market={market} tabs={tabs} />;
 }

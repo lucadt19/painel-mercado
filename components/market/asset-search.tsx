@@ -30,6 +30,7 @@ export function AssetSearch({
   onNavigate,
   placeholder = "Buscar ticker ou nome (ex.: PETR4, Banco do Brasil)",
   onlyB3 = false,
+  onlyWorld = false,
 }: {
   autoFocus?: boolean;
   onSelect?: (item: SearchItem) => void;
@@ -38,6 +39,12 @@ export function AssetSearch({
   placeholder?: string;
   /** Só ativos da B3 (a watchlist cota em reais). */
   onlyB3?: boolean;
+  /**
+   * Só ações americanas (watchlist internacional): as empresas conhecidas e,
+   * se o texto parecer um ticker, a opção de adicionar esse ticker (o
+   * servidor confere na brapi antes de salvar).
+   */
+  onlyWorld?: boolean;
 }) {
   const { data } = useMarketList();
   const router = useRouter();
@@ -46,16 +53,26 @@ export function AssetSearch({
 
   const index = useMemo(() => {
     const bdrNames = Object.fromEntries(worldStocks.filter((w) => w.bdr).map((w) => [w.bdr!, w.name]));
-    const b3 = (data?.ok ? data.assets : []).map((a) => ({
-      symbol: a.symbol,
-      name: a.name || bdrNames[a.symbol] || "",
-      kind: KIND_LABEL[a.kind],
-    }));
+    const b3 = onlyWorld
+      ? []
+      : (data?.ok ? data.assets : []).map((a) => ({
+          symbol: a.symbol,
+          name: a.name || bdrNames[a.symbol] || "",
+          kind: KIND_LABEL[a.kind],
+        }));
     const world = onlyB3 ? [] : worldStocks.map((w) => ({ symbol: w.symbol, name: w.name, kind: "EUA" }));
     return buildSearchIndex([...world, ...b3]);
-  }, [data, onlyB3]);
+  }, [data, onlyB3, onlyWorld]);
 
-  const hits = useMemo(() => searchAssets(index, query), [index, query]);
+  const hits = useMemo(() => {
+    const found = searchAssets(index, query);
+    const typed = query.trim().toUpperCase();
+    // Ticker digitado: só quando nenhuma empresa conhecida corresponde (ex.: "dis" → DIS).
+    if (onlyWorld && found.length === 0 && /^[A-Z]{1,5}([.-][A-Z])?$/.test(typed)) {
+      found.push({ symbol: typed, name: "Ação americana (o ticker será conferido)", kind: "EUA" });
+    }
+    return found;
+  }, [index, query, onlyWorld]);
 
   const choose = (h: SearchItem) => {
     if (onSelect) {
@@ -114,7 +131,9 @@ export function AssetSearch({
         >
           {hits.length === 0 ? (
             <li className="px-3 py-2.5 text-xs text-muted">
-              {!data
+              {onlyWorld
+                ? "Nenhuma empresa encontrada. Digite o ticker americano (ex.: KO, DIS)."
+                : !data
                 ? "Carregando lista de ativos…"
                 : !data.ok
                   ? "Lista de ativos da B3 indisponível no momento. Tente de novo em alguns minutos."

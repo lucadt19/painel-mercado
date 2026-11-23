@@ -267,9 +267,12 @@ export function useVideos() {
 }
 
 /** Watchlist editável: a lista salva e se este aparelho está logado. */
-export function useWatchlist() {
-  return useSWR<WatchlistResponse>("/api/watchlist", getJson, { revalidateOnFocus: false });
+export function useWatchlist(market: "br" | "intl" = "br") {
+  return useSWR<WatchlistResponse>(watchlistKey(market), getJson, { revalidateOnFocus: false });
 }
+
+/** Endereço da watchlist de cada mercado (também é a chave do cache do SWR). */
+export const watchlistKey = (market: "br" | "intl") => (market === "intl" ? "/api/watchlist?m=intl" : "/api/watchlist");
 
 /** Histórico da PTAX de uma moeda: o BC publica o fechamento 1 vez por dia; checa de hora em hora. */
 export function useFxHistory(pair: string) {

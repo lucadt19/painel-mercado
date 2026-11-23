@@ -325,3 +325,8 @@ _(Adicionar aqui, com data, cada decisão tomada durante o projeto.)_
   - **Juros do Fed:** faixa-alvo, séries DFEDTARL/DFEDTARU, com "vigente desde" a última decisão do FOMC.
   - **Inflação CPI 12 meses:** CPIAUCNS, o CPI-U do BLS sem ajuste sazonal, que é o número divulgado na imprensa.
   - O índice de out/2025 não existe: não foi coletado por causa do shutdown do governo americano. Por isso o card mostra os 12 meses do último mês calculável (set/2026) e a variação no mês mais recente (out/2026). Nada é estimado.
+- 23/11/2026: watchlist com abas **Brasil | Internacional**, a pedido.
+  - A internacional é editável com a mesma senha e fica no Upstash (`painel:watchlist-intl:v1`), via `/api/watchlist?m=intl`. Padrão: as 8 primeiras de `worldStocks`.
+  - São as mesmas ações cotadas na aba Mundo (`getWorld` lê a lista; `revalidateTag("world")` ao salvar). Por isso o limite é `worldLimit` (8 no Gratuito), a atualização é de hora em hora com NY aberta e trocar as empresas não muda o consumo da cota.
+  - Adicionar: as 25 empresas de `worldStocks` ou qualquer ticker americano digitado (só aparece se nenhuma empresa conhecida corresponder). Ticker fora da lista é conferido na brapi (1 chamada) antes de salvar.
+  - Variação "3 meses" no Gratuito: a B3 não tem ações americanas e a brapi Gratuita só dá 3 meses de histórico.

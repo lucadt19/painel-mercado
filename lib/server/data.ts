@@ -1,6 +1,6 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
-import { fxPairs, indices, trackedEtfs, worldStocks } from "@/config/watchlist";
+import { fxPairs, indices, trackedEtfs } from "@/config/watchlist";
 import { readWatchlist } from "@/lib/server/watchlist-store";
 import type {
   AssetResponse,
@@ -46,6 +46,8 @@ import { checkEstimatedQuota, WORLD_REFRESH_SECONDS } from "@/lib/server/quota";
 const WEEK = 7 * 24 * 3600;
 /** Marca do cache das cotações (renovada quando a watchlist muda). */
 export const QUOTES_TAG = "quotes";
+/** Marca do cache da aba Mundo / watchlist internacional. */
+export const WORLD_TAG = "world";
 const BUILD_WAIT_MSG = "Aguardando a primeira consulta após a publicação.";
 /** Nova tentativa mais cedo quando alguma fonte falhou. */
 const RETRY_SECONDS = 300;
@@ -195,7 +197,9 @@ export async function getQuotes(): Promise<QuotesResponse> {
 /** Aba Mundo: grandes empresas estrangeiras, em dólar, de hora em hora. */
 export async function getWorld(): Promise<WorldResponse> {
   "use cache";
-  const symbols = worldStocks.slice(0, serverEnv.worldLimit).map((w) => w.symbol);
+  // As ações cotadas são as da watchlist internacional (editável); mudou a lista -> revalidateTag(WORLD_TAG).
+  cacheTag(WORLD_TAG);
+  const symbols = (await readWatchlist("intl")).symbols;
 
   // Na publicação (build), sem brapi: ver getQuotes.
   if (process.env.NEXT_PHASE === "phase-production-build") {

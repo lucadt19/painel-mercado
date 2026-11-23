@@ -67,13 +67,11 @@ function MundoTab() {
         loading={!world.data && !world.error}
         failed={!world.data && !!world.error}
       />
-      {world.data && world.data.items.length < worldStocks.length && (
+      {world.data && (
         <p className="-mt-5 text-xs text-muted">
-          No plano Gratuito da brapi, {world.data.items.length} empresas têm cotação direta em dólar.
-          As demais ({worldStocks
-            .slice(world.data.items.length)
-            .map((w) => w.name)
-            .join(", ")}) aparecem na busca e nos BDRs abaixo.
+          São as ações da sua watchlist internacional ({world.data.items.length}, o que o plano atual da brapi cota de hora
+          em hora); troque-as em Visão Geral → Minha watchlist → Internacional → Editar. As demais grandes empresas
+          aparecem na busca e nos BDRs abaixo.
         </p>
       )}
       <ListedTable
