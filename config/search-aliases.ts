@@ -99,6 +99,63 @@ export const searchAliases: Record<string, string[]> = {
   TTEN: ["3tentos"],
 };
 
+/**
+ * Empresas americanas conhecidas, só para a busca da watchlist internacional
+ * (além das 25 de `worldStocks`). Não são cotadas até você adicioná-las.
+ * Ticker da bolsa americana. Edite à vontade.
+ */
+export const usCompanies: { symbol: string; name: string }[] = [
+  { symbol: "ANT", name: "Anthropic" }, // IPO na Nasdaq em 19/11/2026
+  { symbol: "KO", name: "Coca-Cola" },
+  { symbol: "PEP", name: "PepsiCo" },
+  { symbol: "DIS", name: "Disney" },
+  { symbol: "NKE", name: "Nike" },
+  { symbol: "MCD", name: "McDonald's" },
+  { symbol: "SBUX", name: "Starbucks" },
+  { symbol: "INTC", name: "Intel" },
+  { symbol: "AMD", name: "AMD" },
+  { symbol: "QCOM", name: "Qualcomm" },
+  { symbol: "CSCO", name: "Cisco" },
+  { symbol: "IBM", name: "IBM" },
+  { symbol: "ADBE", name: "Adobe" },
+  { symbol: "CRM", name: "Salesforce" },
+  { symbol: "PLTR", name: "Palantir" },
+  { symbol: "UBER", name: "Uber" },
+  { symbol: "ABNB", name: "Airbnb" },
+  { symbol: "SPOT", name: "Spotify" },
+  { symbol: "PYPL", name: "PayPal" },
+  { symbol: "SHOP", name: "Shopify" },
+  { symbol: "COIN", name: "Coinbase" },
+  { symbol: "NU", name: "Nubank (Nu Holdings)" },
+  { symbol: "MELI", name: "Mercado Livre" },
+  { symbol: "XP", name: "XP Inc." },
+  { symbol: "STNE", name: "StoneCo" },
+  { symbol: "PAGS", name: "PagSeguro" },
+  { symbol: "GS", name: "Goldman Sachs" },
+  { symbol: "MS", name: "Morgan Stanley" },
+  { symbol: "C", name: "Citigroup" },
+  { symbol: "WFC", name: "Wells Fargo" },
+  { symbol: "BLK", name: "BlackRock" },
+  { symbol: "BA", name: "Boeing" },
+  { symbol: "CAT", name: "Caterpillar" },
+  { symbol: "GE", name: "General Electric" },
+  { symbol: "F", name: "Ford" },
+  { symbol: "GM", name: "General Motors" },
+  { symbol: "CVX", name: "Chevron" },
+  { symbol: "PFE", name: "Pfizer" },
+  { symbol: "MRK", name: "Merck" },
+  { symbol: "ABBV", name: "AbbVie" },
+  { symbol: "NVO", name: "Novo Nordisk" },
+  { symbol: "T", name: "AT&T" },
+  { symbol: "VZ", name: "Verizon" },
+  { symbol: "BABA", name: "Alibaba" },
+  { symbol: "PBR", name: "Petrobras (ADR)" },
+  { symbol: "VALE", name: "Vale (ADR)" },
+  { symbol: "ITUB", name: "Itaú (ADR)" },
+  { symbol: "SPY", name: "SPDR S&P 500 ETF" },
+  { symbol: "QQQ", name: "Invesco QQQ (Nasdaq-100) ETF" },
+];
+
 /** Abreviações do cadastro da B3, para "banco" achar "BCO". */
 export const nameAbbreviations: Record<string, string> = {
   bco: "banco",

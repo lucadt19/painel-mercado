@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { worldStocks } from "@/config/watchlist";
+import { usCompanies } from "@/config/search-aliases";
 import { useMarketList } from "@/hooks/use-market-data";
 import { buildSearchIndex, searchAssets, type SearchItem } from "@/lib/asset-search";
 import type { ListedAsset } from "@/lib/types";
@@ -60,7 +61,14 @@ export function AssetSearch({
           name: a.name || bdrNames[a.symbol] || "",
           kind: KIND_LABEL[a.kind],
         }));
-    const world = onlyB3 ? [] : worldStocks.map((w) => ({ symbol: w.symbol, name: w.name, kind: "EUA" }));
+    const big = worldStocks.map((w) => ({ symbol: w.symbol, name: w.name, kind: "EUA" }));
+    // Na watchlist internacional, também as empresas americanas conhecidas (config/search-aliases.ts).
+    const extra = onlyWorld
+      ? usCompanies
+          .filter((c) => !big.some((b) => b.symbol === c.symbol))
+          .map((c) => ({ symbol: c.symbol, name: c.name, kind: "EUA" }))
+      : [];
+    const world = onlyB3 ? [] : [...big, ...extra];
     return buildSearchIndex([...world, ...b3]);
   }, [data, onlyB3, onlyWorld]);
 

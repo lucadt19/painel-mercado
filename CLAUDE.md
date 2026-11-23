@@ -330,3 +330,4 @@ _(Adicionar aqui, com data, cada decisão tomada durante o projeto.)_
   - São as mesmas ações cotadas na aba Mundo (`getWorld` lê a lista; `revalidateTag("world")` ao salvar). Por isso o limite é `worldLimit` (8 no Gratuito), a atualização é de hora em hora com NY aberta e trocar as empresas não muda o consumo da cota.
   - Adicionar: as 25 empresas de `worldStocks` ou qualquer ticker americano digitado (só aparece se nenhuma empresa conhecida corresponder). Ticker fora da lista é conferido na brapi (1 chamada) antes de salvar.
   - Variação "3 meses" no Gratuito: a B3 não tem ações americanas e a brapi Gratuita só dá 3 meses de histórico.
+- 23/11/2026: busca da watchlist internacional também acha ~50 empresas americanas pelo nome (`usCompanies` em `config/search-aliases.ts`), entre elas a Anthropic (ANT, IPO na Nasdaq em 19/11/2026). Elas só são cotadas depois de adicionadas; a brapi não tem logo da ANT (mostra as iniciais).
